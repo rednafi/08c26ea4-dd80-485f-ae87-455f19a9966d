@@ -62,7 +62,7 @@ async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
     pipeline = Pipeline(**pipeline_dict)
 
     # We run the stages sequentially in the background
-    async def run_pipeline_sequentially(stages: Stage) -> None:
+    async def run_pipeline_sequentially(stages: list[Stage]) -> None:
         # Run the stages in the same order as they appear in the pipeline configuration.
         # No dependent stages are considered here.
         for stage in stages:
@@ -80,7 +80,7 @@ async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
                     )
 
     # We run the stages in parallel in the background
-    async def run_pipeline_parallel(stages: Stage) -> None:
+    async def run_pipeline_parallel(stages: list[Stage]) -> None:
         # Run all the stages concurrently without considering the order.
         for stage in stages:
             match stage.type:
