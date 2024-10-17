@@ -230,7 +230,7 @@ class PipelineBase(BaseModel):
                         },
                     },
                 ],
-                "parallel": True,
+                "parallel": False,
             }
         }
     )
