@@ -2,12 +2,20 @@
 
 import asyncio
 import logging
-from typing import Any
 
 from fastapi import HTTPException, status
 
 from src.db import AsyncDB
-from src.dto import Pipeline, PipelineRequest, PipelineResponse
+from src.dto import (
+    BuildStage,
+    DeployStage,
+    Pipeline,
+    PipelineRequest,
+    PipelineResponse,
+    RunStage,
+    Stage,
+    StageType,
+)
 
 logger = logging.getLogger("pipeline")
 
@@ -50,19 +58,20 @@ async def handle_delete_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
 async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
     """Trigger a pipeline by running the stages sequentially in the background."""
     await _raise_when_id_not_found(id, db)
-    pipeline = await db.get(id)
+    pipeline_dict = await db.get(id)
+    pipeline = Pipeline(**pipeline_dict)
 
     # We run the stages sequentially in the background
-    async def run_pipeline_sequentially() -> None:
+    async def run_pipeline_sequentially(stages: Stage) -> None:
         # Run the stages in the same order as they appear in the pipeline configuration.
         # No dependent stages are considered here.
-        for stage in pipeline["stages"]:
-            match stage["type"]:
-                case "Run":
+        for stage in stages:
+            match stage.type:
+                case StageType.RUN:
                     await _handle_run_stage(stage)
-                case "Build":
+                case StageType.BUILD:
                     await _handle_build_stage(stage)
-                case "Deploy":
+                case StageType.DEPLOY:
                     await _handle_deploy_stage(stage)
                 case _:
                     raise HTTPException(
@@ -71,15 +80,15 @@ async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
                     )
 
     # We run the stages in parallel in the background
-    async def run_pipeline_parallel() -> None:
+    async def run_pipeline_parallel(stages: Stage) -> None:
         # Run all the stages concurrently without considering the order.
-        for stage in pipeline["stages"]:
-            match stage["type"]:
-                case "Run":
+        for stage in stages:
+            match stage.type:
+                case StageType.RUN:
                     asyncio.create_task(_handle_run_stage(stage))
-                case "Build":
+                case StageType.BUILD:
                     asyncio.create_task(_handle_build_stage(stage))
-                case "Deploy":
+                case StageType.DEPLOY:
                     asyncio.create_task(_handle_deploy_stage(stage))
                 case _:
                     raise HTTPException(
@@ -90,12 +99,12 @@ async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
     # Run the pipeline stages in parallel or sequentially based on the pipeline config.
     # If sequential, run the stages one after the other in the same order as they appear in the
     # pipeline configuration. If parallel, run all the stages concurrently.
-    if pipeline["parallel"]:
-        asyncio.create_task(run_pipeline_parallel())
+    if pipeline.parallel:
+        asyncio.create_task(run_pipeline_parallel(pipeline.stages))
     else:
-        asyncio.create_task(run_pipeline_sequentially())
+        asyncio.create_task(run_pipeline_sequentially(pipeline.stages))
 
-    # Cleanup resources in the background without blocking
+    # Remove the pipeline config after scheduling
     asyncio.create_task(_cleanup(id, db))
 
     return PipelineResponse(id=id, message="Pipeline triggered successfully")
@@ -110,28 +119,24 @@ async def _raise_when_id_not_found(id: str, db: AsyncDB) -> None:
         )
 
 
-async def _handle_run_stage(stage: dict[str, Any]) -> None:
+async def _handle_run_stage(stage: RunStage) -> None:
     """Run the shell command in the Run stage."""
     # Sanitize shell command to prevent shell injection
-    logger.info("Running command: %s", stage["command"])
+    logger.info("Running command: %s", stage.command)
 
 
-async def _handle_build_stage(stage: dict[str, Any]) -> None:
+async def _handle_build_stage(stage: BuildStage) -> None:
     """Build a Docker image from the Dockerfile and push it to ECR."""
     logger.info(
         "Building Docker image from %s and pushing to %s",
-        stage["dockerfile"],
-        stage["ecr_repository"],
+        stage.dockerfile,
+        stage.ecr_repository,
     )
 
 
-async def _handle_deploy_stage(stage: dict[str, Any]) -> None:
+async def _handle_deploy_stage(stage: DeployStage) -> None:
     """Deploy the Kubernetes manifest to the specified cluster."""
-    logger.info(
-        "Deploying to cluster %s with manifest %s",
-        stage["cluster"],
-        stage["k8s_manifest"],
-    )
+    logger.info("Deploying to cluster %s", stage.cluster.name)
 
 
 async def _cleanup(id: str, db: AsyncDB) -> None:

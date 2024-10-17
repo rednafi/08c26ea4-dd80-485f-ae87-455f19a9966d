@@ -1,6 +1,6 @@
 """Assemble all the API routes."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 
 from src.db import AsyncDB, AsyncInMemoryDB
 from src.dto import Pipeline, PipelineRequest, PipelineResponse
@@ -24,7 +24,7 @@ async def get_db() -> AsyncDB:
     return db_instance
 
 
-@router.post("/pipelines")
+@router.post("/pipelines", status_code=status.HTTP_201_CREATED)
 async def create_pipeline(
     pipeline: PipelineRequest, db: AsyncDB = Depends(get_db)
 ) -> PipelineResponse:

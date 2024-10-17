@@ -5,7 +5,14 @@ from enum import StrEnum
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    field_serializer,
+    field_validator,
+)
 
 
 class StageType(StrEnum):
@@ -15,6 +22,16 @@ class StageType(StrEnum):
 
 
 class RunStage(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "type": "Run",
+                "name": "Run tests",
+                "command": "pytest",
+                "timeout": 500,
+            }
+        }
+    )
     type: Literal[StageType.RUN] = Field(
         ..., description="Type of the stage, should be 'Run'"
     )
@@ -29,28 +46,10 @@ class RunStage(BaseModel):
         # Pass-through validation for shell command.
         return value
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "type": "Run",
-                "name": "Run tests",
-                "command": "pytest",
-                "timeout": 500,
-            }
-        }
-
 
 class BuildStage(BaseModel):
-    type: Literal[StageType.BUILD] = Field(
-        ..., description="Type of the stage, should be 'Build'"
-    )
-    name: str = Field(..., description="Name of the stage, e.g., build, package.")
-    dockerfile: str = Field(..., description="Dockerfile content.")
-    tag: str = Field(..., description="Docker image tag.")
-    ecr_repository: str = Field(..., description="ECR repository URL path.")
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "type": "Build",
                 "name": "Build Docker image",
@@ -59,15 +58,21 @@ class BuildStage(BaseModel):
                 "ecr_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo",
             }
         }
+    )
+    type: Literal[StageType.BUILD] = Field(
+        ..., description="Type of the stage, should be 'Build'"
+    )
+    name: str = Field(..., description="Name of the stage, e.g., build, package.")
+    dockerfile: str = Field(..., description="Dockerfile content.")
+    tag: str = Field(..., description="Docker image tag.")
+    ecr_repository: str = Field(..., description="ECR repository URL path.")
 
     @field_validator("dockerfile")
     def validate_dockerfile(cls, value: str) -> str:
-        # Pass-through validation for dockerfile content.
         return value
 
     @field_validator("ecr_repository")
     def validate_ecr_url(cls, value: str) -> str:
-        # Regular expression for validating ECR URL
         ecr_url_pattern = (
             r"^\d{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-zA-Z0-9-_]+$"
         )
@@ -80,8 +85,15 @@ class BuildStage(BaseModel):
 
 
 class Cluster(BaseModel):
-    """Kubernetes cluster details."""
-
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "name": "my-cluster",
+                "server_url": "https://my-cluster.example.com",
+                "namespace": "default",
+            }
+        }
+    )
     name: str = Field(..., description="Name of the Kubernetes cluster")
     server_url: HttpUrl = Field(..., description="URL of the Kubernetes cluster")
     namespace: str | None = Field(
@@ -90,7 +102,6 @@ class Cluster(BaseModel):
 
     @field_validator("name")
     def validate_name(cls, value: str) -> str:
-        # Regular expression for validating cluster name
         name_pattern = r"^[a-zA-Z0-9-_]+$"
         if not re.match(name_pattern, value):
             raise ValueError(
@@ -100,7 +111,6 @@ class Cluster(BaseModel):
 
     @field_validator("namespace")
     def validate_namespace(cls, value: str) -> str:
-        # Regular expression for validating namespace
         if not value:
             return "default"
 
@@ -111,33 +121,15 @@ class Cluster(BaseModel):
             )
         return value
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "name": "my-cluster",
-                "server_url": "https://my-cluster.example.com",
-                "namespace": "default",
-            }
-        }
+    # Ensure that HttpUrl serializes as a string in Pydantic v2
+    @field_serializer("server_url")
+    def serialize_git_repository(self, server_url: HttpUrl) -> str:
+        return str(server_url)
 
 
 class DeployStage(BaseModel):
-    type: Literal[StageType.DEPLOY] = Field(
-        ..., description="Type of the stage, should be 'Deploy'"
-    )
-    name: str = Field(..., description="Name of the stage, e.g., deploy, release.")
-    k8s_manifest: dict[str, Any] = Field(
-        ..., description="Kubernetes manifest in JSON format."
-    )
-    cluster: Cluster = Field(..., description="Kubernetes cluster details.")
-
-    @field_validator("k8s_manifest")
-    def validate_k8s_manifest(cls, value: dict[str, Any]) -> dict[str, Any]:
-        # Pass-through validation for k8s manifest.
-        return value
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "type": "Deploy",
                 "name": "deploy-app-stage",
@@ -169,21 +161,27 @@ class DeployStage(BaseModel):
                 },
             }
         }
+    )
+    type: Literal[StageType.DEPLOY] = Field(
+        ..., description="Type of the stage, should be 'Deploy'"
+    )
+    name: str = Field(..., description="Name of the stage, e.g., deploy, release.")
+    k8s_manifest: dict[str, Any] = Field(
+        ..., description="Kubernetes manifest in JSON format."
+    )
+    cluster: Cluster = Field(..., description="Kubernetes cluster details.")
+
+    @field_validator("k8s_manifest")
+    def validate_k8s_manifest(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return value
+
+
+Stage = RunStage | BuildStage | DeployStage
 
 
 class PipelineBase(BaseModel):
-    name: str = Field(..., description="Name of the pipeline.")
-    git_repository: HttpUrl = Field(..., description="URL of the Git repository.")
-    stages: list[RunStage | BuildStage | DeployStage] = Field(
-        ..., description="List of stages in the pipeline."
-    )
-    parallel: bool = Field(
-        default=False,
-        description="Whether the stages should run in parallel or sequentially.",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "CI Pipeline",
                 "git_repository": "https://github.com/example/repo",
@@ -235,37 +233,51 @@ class PipelineBase(BaseModel):
                 "parallel": True,
             }
         }
+    )
+    name: str = Field(..., description="Name of the pipeline.")
+    git_repository: HttpUrl = Field(..., description="URL of the Git repository.")
+    stages: list[Stage] = Field(..., description="List of stages in the pipeline.")
+    parallel: bool = Field(
+        default=False,
+        description="Whether the stages should run in parallel or sequentially.",
+    )
+
+    # Ensure that HttpUrl serializes as a string in Pydantic v2
+    @field_serializer("git_repository")
+    def serialize_git_repository(self, git_repository: HttpUrl) -> str:
+        return str(git_repository)
 
 
 class Pipeline(PipelineBase):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                **PipelineBase.model_config["json_schema_extra"]["example"],  # type: ignore
+            }
+        }
+    )
     id: str = Field(
         default_factory=lambda: str(uuid4()),
         description="Unique identifier for the pipeline.",
         frozen=True,
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "550e8400-e29b-41d4-a716-446655440000",
-                **PipelineBase.Config.json_schema_extra["example"],
-            }
-        }
-
 
 class PipelineRequest(PipelineBase):
-    class Config:
-        json_schema_extra = PipelineBase.Config.json_schema_extra
+    model_config = ConfigDict(
+        json_schema_extra=PipelineBase.model_config["json_schema_extra"]
+    )
 
 
 class PipelineResponse(BaseModel):
-    id: str
-    message: str
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "message": "Pipeline has been successfully created.",
             }
         }
+    )
+    id: str
+    message: str
