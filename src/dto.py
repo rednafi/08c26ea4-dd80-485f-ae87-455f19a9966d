@@ -25,6 +25,7 @@ class BuildStage(BaseModel):
     type: Literal[StageType.BUILD] = Field(
         ..., description="Type of the stage, should be 'Build'"
     )
+    name: str = Field(..., description="Name of the stage, e.g., build, package.")
     dockerfile: str = Field(..., description="Path to the Dockerfile.")
     ecr_repository_url: str = Field(..., description="ECR repository URL.")
 
@@ -47,6 +48,7 @@ class DeployStage(BaseModel):
     type: Literal[StageType.DEPLOY] = Field(
         ..., description="Type of the stage, should be 'Deploy'"
     )
+    name: str = Field(..., description="Name of the stage, e.g., deploy, release.")
     k8s_manifest: str = Field(..., description="Path to the Kubernetes manifest file.")
     cluster: str = Field(..., description="Name of the Kubernetes cluster.")
 
@@ -56,6 +58,10 @@ class PipelineBase(BaseModel):
     git_repository: str = Field(..., description="URL of the Git repository.")
     stages: list[RunStage | BuildStage | DeployStage] = Field(
         ..., description="List of stages in the pipeline."
+    )
+    parallel: bool = Field(
+        default=False,
+        description="Whether the stages should run in parallel or sequentially.",
     )
 
 

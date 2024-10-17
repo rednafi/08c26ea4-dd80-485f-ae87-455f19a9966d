@@ -48,25 +48,46 @@ async def handle_delete_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
 
 
 async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
-    """Trigger a pipeline by running the stages."""
+    """Trigger a pipeline by running the stages sequentially in the background."""
     await _raise_when_id_not_found(id, db)
     pipeline = await db.get(id)
 
-    # We run the stage handlers in the background so that we aren't blocking
-    # the acknowledgement of the pipeline trigger.
-    for stage in pipeline["stages"]:
-        match stage["type"]:
-            case "Run":
-                asyncio.create_task(_handle_run_stage(stage))
-            case "Build":
-                asyncio.create_task(_handle_build_stage(stage))
-            case "Deploy":
-                asyncio.create_task(_handle_deploy_stage(stage))
-            case _:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Unknown stage type: {stage['type']}",
-                )
+    # We run the stages sequentially in the background
+    async def run_pipeline_sequentially() -> None:
+        for stage in pipeline["stages"]:
+            match stage["type"]:
+                case "Run":
+                    await _handle_run_stage(stage)
+                case "Build":
+                    await _handle_build_stage(stage)
+                case "Deploy":
+                    await _handle_deploy_stage(stage)
+                case _:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Unknown stage type: {stage['type']}",
+                    )
+
+    # We run the stages in parallel in the background
+    async def run_pipeline_parallel() -> None:
+        for stage in pipeline["stages"]:
+            match stage["type"]:
+                case "Run":
+                    asyncio.create_task(_handle_run_stage(stage))
+                case "Build":
+                    asyncio.create_task(_handle_build_stage(stage))
+                case "Deploy":
+                    asyncio.create_task(_handle_deploy_stage(stage))
+                case _:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Unknown stage type: {stage['type']}",
+                    )
+
+    if pipeline["parallel"]:
+        asyncio.create_task(run_pipeline_parallel())
+    else:
+        asyncio.create_task(run_pipeline_sequentially())
 
     return PipelineResponse(id=id, message="Pipeline triggered successfully")
 
