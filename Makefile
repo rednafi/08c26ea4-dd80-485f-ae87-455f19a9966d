@@ -1,19 +1,19 @@
 .PHONY: $(MAKECMDGOALS)
 
 lint:
-	@ruff format .
-	@ruff check --fix .
-	@mypy .
+	@uv run ruff format .
+	@uv run ruff check --fix .
+	@uv run mypy .
 
 lint-check:
-	@ruff check .
-	@mypy .
+	@uv run ruff check .
+	@uv run mypy .
 
 test:
-	@pytest -vv
+	@uv run pytest -vv
 
 run-local:
-	@uvicorn src.main:app --host 0.0.0.0 --port 5001 --reload
+	@uv run uvicorn src.main:app --host 0.0.0.0 --port 5001 --reload
 
 run-container:
 	@docker-compose up --build -d

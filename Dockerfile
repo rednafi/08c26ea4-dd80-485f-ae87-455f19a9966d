@@ -12,9 +12,14 @@ SHELL ["sh", "-exc"]
 WORKDIR /app
 
 # Install dependencies with build cache enabled
+# `--mount=type=cache,target=/root/.cache/uv` is used to cache the uv dependencies
+# `--mount=type=bind,source=uv.lock,target=uv.lock` is used to bind mount the uv.lock file
+# `--mount=type=bind,source=pyproject.toml,target=pyproject.toml` is used to bind mount the
+# pyproject.toml file
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    # Install the project dependencies
     uv sync --no-install-project --locked --no-dev
 
 # Copy the project source code into the builder stage

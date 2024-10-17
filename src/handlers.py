@@ -54,6 +54,8 @@ async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
 
     # We run the stages sequentially in the background
     async def run_pipeline_sequentially() -> None:
+        # Run the stages in the same order as they appear in the pipeline configuration.
+        # No dependent stages are considered here.
         for stage in pipeline["stages"]:
             match stage["type"]:
                 case "Run":
@@ -70,6 +72,7 @@ async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
 
     # We run the stages in parallel in the background
     async def run_pipeline_parallel() -> None:
+        # Run all the stages concurrently without considering the order.
         for stage in pipeline["stages"]:
             match stage["type"]:
                 case "Run":
@@ -84,10 +87,16 @@ async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
                         detail=f"Unknown stage type: {stage['type']}",
                     )
 
+    # Run the pipeline stages in parallel or sequentially based on the pipeline config.
+    # If sequential, run the stages one after the other in the same order as they appear in the
+    # pipeline configuration. If parallel, run all the stages concurrently.
     if pipeline["parallel"]:
         asyncio.create_task(run_pipeline_parallel())
     else:
         asyncio.create_task(run_pipeline_sequentially())
+
+    # Cleanup resources in the background without blocking
+    asyncio.create_task(_cleanup(id, db))
 
     return PipelineResponse(id=id, message="Pipeline triggered successfully")
 
@@ -112,7 +121,7 @@ async def _handle_build_stage(stage: dict[str, Any]) -> None:
     logger.info(
         "Building Docker image from %s and pushing to %s",
         stage["dockerfile"],
-        stage["ecr_repository_url"],
+        stage["ecr_repository"],
     )
 
 
@@ -123,3 +132,11 @@ async def _handle_deploy_stage(stage: dict[str, Any]) -> None:
         stage["cluster"],
         stage["k8s_manifest"],
     )
+
+
+async def _cleanup(id: str, db: AsyncDB) -> None:
+    """Cleanup resources and remove pipeline config after a pipeline run."""
+    logger.info("Cleaning up resources")
+
+    # Remove the pipeline config from the database
+    await db.delete(id)
