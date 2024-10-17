@@ -1,4 +1,4 @@
-"""Configure a custom logger for the app."""
+"""Configure the custom logger."""
 
 import logging
 
@@ -20,4 +20,8 @@ def configure_logger() -> None:
     console_handler.setFormatter(formatter)
 
     # Add the handler to the logger
-    logger.addHandler(console_handler)
+    if not logger.hasHandlers():
+        logger.addHandler(console_handler)
+
+    # Disable propagation to avoid log duplication via uvicorn
+    logger.propagate = False

@@ -1,0 +1,18 @@
+services:
+  pipeline:
+    restart: unless-stopped
+    env_file:
+      - .env
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+      labels:
+        - pipeline
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        gunicorn src.main:app --workers 2 \
+        --worker-class uvicorn.workers.UvicornWorker -b 0.0.0.0:5001
+    ports:
+      - "5001:5001"

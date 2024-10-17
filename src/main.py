@@ -1,30 +1,38 @@
+"""Entrypoint for the FastAPI application."""
+
+import logging
+import secrets
 from typing import Annotated
-from fastapi import FastAPI, Depends, HTTPException, status
+
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from starlette.middleware.cors import CORSMiddleware
+
+from src.config import settings
 from src.logger import configure_logger
 from src.routes import router
-import secrets
-from src.config import settings
-
 
 security = HTTPBasic()
+logger = logging.getLogger("pipeline")
 
 
-def verify_credentials(
-    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-):
+def verify_credentials(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
+    """Verify the provided credentials."""
+    # Compare the provided username with the correct ones
     current_username_bytes = credentials.username.encode("utf8")
     correct_username_bytes = settings.username.encode("utf8")
     is_correct_username = secrets.compare_digest(
         current_username_bytes, correct_username_bytes
     )
+
+    # Compare the provided password with the correct one
     current_password_bytes = credentials.password.encode("utf8")
     correct_password_bytes = settings.password.encode("utf8")
     is_correct_password = secrets.compare_digest(
         current_password_bytes, correct_password_bytes
     )
-    
+
+    # Raise an HTTPException if the credentials are incorrect
     if not (is_correct_username and is_correct_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -32,8 +40,12 @@ def verify_credentials(
             headers={"WWW-Authenticate": "Basic"},
         )
 
+
 def init_app() -> FastAPI:
+    # Configure the logger
     configure_logger()
+
+    # Initialize the FastAPI application instance
     app = FastAPI()
 
     # Set all CORS enabled origins

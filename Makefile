@@ -7,6 +7,7 @@ lint:
 
 lint-check:
 	@ruff check .
+	@mypy .
 
 test:
 	@pytest -vv
@@ -18,4 +19,4 @@ run-container:
 	@docker-compose up --build -d
 
 kill-container:
-	@docker-compose down
+	@docker-compose down -t 1

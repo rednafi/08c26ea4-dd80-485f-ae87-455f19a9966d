@@ -1,3 +1,5 @@
+"""Concurrency-safe DB implementation for async code."""
+
 import asyncio
 from typing import Any, Protocol
 
