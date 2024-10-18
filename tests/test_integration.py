@@ -11,7 +11,6 @@ make run-container
 """
 
 from typing import ClassVar
-from urllib import response
 
 import httpx
 import pytest
@@ -22,9 +21,12 @@ from tests.utils import get_basic_auth_header
 
 @pytest.mark.integration
 class TestPipelineIntegration:
+    pipeline_id: ClassVar[str | None]
+    base_url: ClassVar[str]
+    headers: ClassVar[dict]
+
     @classmethod
     def setup_class(cls) -> None:
-
         # Store the pipeline ID for future tests
         cls.pipeline_id = None
         cls.base_url = "http://0.0.0.0:5001"
@@ -37,7 +39,6 @@ class TestPipelineIntegration:
         # Ping the server to ensure it is running
         cls.ensure_server_is_running(cls.base_url)
 
-
     @staticmethod
     def ensure_server_is_running(base_url: str) -> None:
         try:
@@ -47,7 +48,6 @@ class TestPipelineIntegration:
             pytest.fail(
                 "Server is not running. Start the server before running integration tests. You can run `make run-container` in the terminal to start it."
             )
-
 
     async def test_create_pipeline(self) -> None:
         payload = {
@@ -131,10 +131,11 @@ class TestPipelineIntegration:
     async def test_get_pipeline(self) -> None:
         """This test depends on the test_create_pipeline test to pass."""
 
-
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}"
-            response = await client.get(url, headers=self.headers, follow_redirects=True)
+            response = await client.get(
+                url, headers=self.headers, follow_redirects=True
+            )
             response_dict = response.json()
             assert response.status_code == status.HTTP_200_OK
             assert response_dict["id"] == self.pipeline_id
@@ -154,7 +155,7 @@ class TestPipelineIntegration:
                     "timeout": 500,
                     "type": "Run",
                 },
-            ]
+            ],
         }
 
         async with httpx.AsyncClient() as client:
@@ -171,7 +172,9 @@ class TestPipelineIntegration:
 
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}/trigger"
-            response = await client.post(url, headers=self.headers, follow_redirects=True)
+            response = await client.post(
+                url, headers=self.headers, follow_redirects=True
+            )
             response_dict = response.json()
             assert response.status_code == status.HTTP_200_OK
             assert response_dict["message"] == "Pipeline triggered successfully."
@@ -181,7 +184,9 @@ class TestPipelineIntegration:
 
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}"
-            response = await client.delete(url, headers=self.headers, follow_redirects=True)
+            response = await client.delete(
+                url, headers=self.headers, follow_redirects=True
+            )
             response_dict = response.json()
             assert response.status_code == status.HTTP_200_OK
             assert response_dict["message"] == "Pipeline deleted successfully."

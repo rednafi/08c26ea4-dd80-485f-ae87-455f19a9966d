@@ -5,7 +5,6 @@ Test the handler functions. This is equivalent of e2e since the endpoints just c
 these functions.
 """
 
-import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
