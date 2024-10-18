@@ -44,7 +44,7 @@ async def handle_update_pipeline(
 
     pipeline = Pipeline(**pipeline_request.model_dump())
     await db.update(id, pipeline.model_dump())
-    return PipelineResponse(id=id, message="Pipeline updated successfully")
+    return PipelineResponse(id=id, message="Pipeline updated successfully.")
 
 
 async def handle_delete_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
@@ -64,7 +64,7 @@ async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
 
     await _schedule_pipeline(pipeline, db)
 
-    return PipelineResponse(id=id, message="Pipeline triggered successfully")
+    return PipelineResponse(id=id, message="Pipeline triggered successfully.")
 
 
 async def _raise_when_id_not_found(id: str, db: AsyncDB) -> None:

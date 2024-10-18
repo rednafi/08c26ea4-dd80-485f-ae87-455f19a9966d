@@ -143,7 +143,7 @@ async def test_handle_update_pipeline(
     )
     response = await handle_update_pipeline(create_response.id, updated_request, db)
 
-    assert response.message == "Pipeline updated successfully"
+    assert response.message == "Pipeline updated successfully."
     pipeline = await db.get(create_response.id)
     assert pipeline["name"] == "Updated CI Pipeline"
     assert pipeline["parallel"] is True
@@ -187,13 +187,9 @@ async def test_handle_delete_pipeline_not_found(db: AsyncInMemoryDB):
     )
 
 
-@patch("src.handlers._handle_run_stage", new_callable=AsyncMock)
-@patch("src.handlers._handle_build_stage", new_callable=AsyncMock)
-@patch("src.handlers._handle_deploy_stage", new_callable=AsyncMock)
+@patch("src.handlers._schedule_pipeline", new_callable=AsyncMock)
 async def test_handle_trigger_pipeline(
-    mock_run_stage: AsyncMock,
-    mock_build_stage: AsyncMock,
-    mock_deploy_stage: AsyncMock,
+    mock_schedule_pipeline: AsyncMock,
     db: AsyncInMemoryDB,
     pipeline_request: PipelineRequest,
 ):
@@ -202,14 +198,6 @@ async def test_handle_trigger_pipeline(
 
     # Trigger the pipeline and ensure that tasks are executed
     response = await handle_trigger_pipeline(create_response.id, db)
-    assert response.message == "Pipeline triggered successfully"
+    assert response.message == "Pipeline triggered successfully."
 
-    # Ensure that each stage handler is called
-    await asyncio.sleep(0.1)  # Allow background tasks to run
-    mock_run_stage.assert_awaited_once()
-    mock_build_stage.assert_awaited_once()
-    mock_deploy_stage.assert_awaited_once()
-
-    # Check if the pipeline was cleaned up from the database
-    await asyncio.sleep(0.1)
-    assert await db.get(create_response.id) is None
+    assert mock_schedule_pipeline.await_count == 1

@@ -1,6 +1,5 @@
 # type: ignore
 
-import base64
 from typing import Any
 from unittest.mock import patch
 
@@ -11,20 +10,12 @@ from fastapi.testclient import TestClient
 from src.db import AsyncInMemoryDB
 from src.dto import Pipeline, PipelineResponse
 from src.main import app
+from tests.utils import get_basic_auth_header
 
 client: TestClient = TestClient(app)
 
 # Mock database instance for all tests
 mock_db: AsyncInMemoryDB = AsyncInMemoryDB()
-
-
-# Helper function to generate the Authorization header for Basic Auth
-def basic_auth_header(username: str, password: str) -> str:
-    credentials: str = f"{username}:{password}"
-    base64_credentials: str = base64.b64encode(credentials.encode("utf-8")).decode(
-        "utf-8"
-    )
-    return f"Basic {base64_credentials}"
 
 
 def get_pipeline() -> dict[str, Any]:
@@ -99,7 +90,7 @@ def test_create_pipeline(
     response = client.post(
         "/v1/pipelines",
         json=mock_pipeline,
-        headers={"Authorization": basic_auth_header("admin", "admin")},
+        headers={"Authorization": get_basic_auth_header("admin", "admin")},
     )
 
     assert response.status_code == status.HTTP_201_CREATED
@@ -113,7 +104,7 @@ def test_get_pipeline(mock_handle_get_pipeline: Any) -> None:
 
     response = client.get(
         f"/v1/pipelines/{pipeline_id}",
-        headers={"Authorization": basic_auth_header("admin", "admin")},
+        headers={"Authorization": get_basic_auth_header("admin", "admin")},
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -136,7 +127,7 @@ def test_update_pipeline(
     response = client.put(
         f"/v1/pipelines/{pipeline_id}",
         json=mock_pipeline,
-        headers={"Authorization": basic_auth_header("admin", "admin")},
+        headers={"Authorization": get_basic_auth_header("admin", "admin")},
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -156,7 +147,7 @@ def test_delete_pipeline(mock_handle_delete_pipeline: Any) -> None:
 
     response = client.delete(
         f"/v1/pipelines/{pipeline_id}",
-        headers={"Authorization": basic_auth_header("admin", "admin")},
+        headers={"Authorization": get_basic_auth_header("admin", "admin")},
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -176,7 +167,7 @@ def test_trigger_pipeline(mock_handle_trigger_pipeline: Any) -> None:
 
     response = client.post(
         f"/v1/pipelines/{pipeline_id}/trigger",
-        headers={"Authorization": basic_auth_header("admin", "admin")},
+        headers={"Authorization": get_basic_auth_header("admin", "admin")},
     )
 
     assert response.status_code == status.HTTP_200_OK

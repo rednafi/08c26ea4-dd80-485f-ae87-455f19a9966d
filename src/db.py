@@ -15,6 +15,8 @@ class AsyncDB(Protocol):
 
     async def delete(self, key: str) -> None: ...
 
+    async def safe_delete(self, key: str) -> None: ...
+
 
 class AsyncInMemoryDB(AsyncDB):
     """Concurrency-safe in-memory database implementation for async code."""
@@ -44,3 +46,7 @@ class AsyncInMemoryDB(AsyncDB):
             if key not in self._data:
                 raise KeyError(f"Key {key} not found in the database")
             del self._data[key]
+
+    async def safe_delete(self, key: str) -> None:
+        async with self._lock:
+            self._data.pop(key, None)

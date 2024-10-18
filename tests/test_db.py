@@ -59,6 +59,10 @@ class TestAsyncInMemoryDB:
         with pytest.raises(KeyError, match="Key key1 not found in the database"):
             await db.delete("key1")
 
+    async def test_safe_delete(self, db: AsyncInMemoryDB) -> None:
+        """Test safe deletion of a key."""
+        await db.safe_delete("nonexistent_key")  # No exception should be raised
+
     async def test_concurrent_access(self, db: AsyncInMemoryDB) -> None:
         """Test that the database is safe for concurrent access."""
 

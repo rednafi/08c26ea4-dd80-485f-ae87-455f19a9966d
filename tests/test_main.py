@@ -90,3 +90,12 @@ def test_access_with_incorrect_credentials() -> None:
     response = client.get("/protected-route", auth=("wrong_username", "wrong_password"))
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Incorrect username or password"}
+
+
+def test_app_has_index_route() -> None:
+    """Test if the FastAPI app has an index route that shows a welcome message.
+    This base route does not require authentication and used for health check before running integration tests.
+    """
+    response = client.get("/")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["message"].find("pipeline API") != -1

@@ -57,6 +57,15 @@ def init_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Add welcome message to the index route. This doesn't need authentication and won't
+    # be included in the docs. The route is used to run health check before running integration
+    # tests.
+    @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
+    async def _() -> dict[str, str]:
+        return {
+            "message": "Welcome to the pipeline API. Visit /docs for the documentation."
+        }
+
     # Include the router with basic auth applied to every route
     app.include_router(router, dependencies=[Depends(verify_credentials)])
 
