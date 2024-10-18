@@ -1,13 +1,16 @@
 """
-This makes real HTTP calls to the local API and checks the responses. This makes it a great way to test the whole system end-to-end. Also, read this file if you want to quickly understand how the
+This makes real HTTP calls to local API endpoints and checks the responses, making it a great way
+to test the whole system end-to-end. Read this file if you want a quick understanding of how the
 entire API suite behaves.
 
-For this test to work, you need to have the API running locally. You can start the API by running the following command in the terminal:
+For this test to work, you need to have the API server running locally. Start the server by running:
 
 ```
 make run-container
 ```
 
+Note: Tests must be run in order. Pytest-order is used to ensure this. Running them one by one
+isn't recommended, as the tests depend on each other.
 """
 
 from typing import ClassVar
@@ -49,7 +52,9 @@ class TestPipelineIntegration:
                 "Server is not running. Start the server before running integration tests. You can run `make run-container` in the terminal to start it."
             )
 
+    @pytest.mark.order(1)
     async def test_create_pipeline(self) -> None:
+        # Test to create a new pipeline
         payload = {
             "git_repository": "https://github.com/example/repo",
             "name": "CI Pipeline",
@@ -128,9 +133,11 @@ class TestPipelineIntegration:
             assert response.status_code == status.HTTP_201_CREATED
             assert response_dict["message"] == "Pipeline created successfully."
 
+    @pytest.mark.order(2)
     async def test_get_pipeline(self) -> None:
         """This test depends on the test_create_pipeline test to pass."""
 
+        # Test to get the created pipeline by ID
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}"
             response = await client.get(
@@ -141,9 +148,11 @@ class TestPipelineIntegration:
             assert response_dict["id"] == self.pipeline_id
             assert response_dict["name"] == "CI Pipeline"
 
+    @pytest.mark.order(3)
     async def test_update_pipeline(self) -> None:
         """This test depends on the test_create_pipeline test to pass."""
 
+        # Test to update the created pipeline
         payload = {
             "git_repository": "https://github.com/example/repo",
             "name": "CI Pipeline Updated",
@@ -167,9 +176,11 @@ class TestPipelineIntegration:
             assert response.status_code == status.HTTP_200_OK
             assert response_dict["message"] == "Pipeline updated successfully."
 
+    @pytest.mark.order(4)
     async def test_trigger_pipeline(self) -> None:
         """This test depends on the test_create_pipeline test to pass."""
 
+        # Test to trigger the created pipeline
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}/trigger"
             response = await client.post(
@@ -179,9 +190,11 @@ class TestPipelineIntegration:
             assert response.status_code == status.HTTP_200_OK
             assert response_dict["message"] == "Pipeline triggered successfully."
 
+    @pytest.mark.order(5)
     async def test_delete_pipeline(self) -> None:
         """This test depends on the test_create_pipeline test to pass."""
 
+        # Test to delete the created pipeline
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}"
             response = await client.delete(
