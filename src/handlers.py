@@ -7,16 +7,13 @@ from fastapi import HTTPException, status
 
 from src.db import AsyncDB
 from src.dto import (
-    BuildStage,
-    DeployStage,
     Pipeline,
     PipelineRequest,
     PipelineResponse,
-    RunStage,
-    Stage,
 )
+from src.runner import run_pipeline
 
-logger = logging.getLogger("pipeline")
+logger = logging.getLogger("pipeline.handlers")
 
 
 async def handle_create_pipeline(
@@ -65,16 +62,7 @@ async def handle_trigger_pipeline(id: str, db: AsyncDB) -> PipelineResponse:
     pipeline_dict = await db.get(id)
     pipeline = Pipeline(**pipeline_dict)
 
-    # Run the pipeline stages in parallel or sequentially based on the pipeline config.
-    # If sequential, run the stages one after the other in the same order as they appear in the
-    # pipeline configuration. If parallel, run all the stages concurrently.
-    if pipeline.parallel:
-        asyncio.create_task(_run_pipeline_parallel(pipeline.stages))
-    else:
-        asyncio.create_task(_run_pipeline_sequential(pipeline.stages))
-
-    # Remove the pipeline config after scheduling
-    asyncio.create_task(_cleanup(id, db))
+    await _schedule_pipeline(pipeline, db)
 
     return PipelineResponse(id=id, message="Pipeline triggered successfully")
 
@@ -89,69 +77,11 @@ async def _raise_when_id_not_found(id: str, db: AsyncDB) -> None:
         )
 
 
-async def _run_pipeline_sequential(stages: list[Stage]) -> None:
-    """Run the stages in the same order as they appear in the pipeline configuration.
-    No dependent stages are considered here.
-    """
+async def _schedule_pipeline(pipeline: Pipeline, db: AsyncDB) -> None:
+    """Schedule the pipeline stages to run in sequence."""
 
-    logger.info("Running pipeline stages sequentially")
-    for stage in stages:
-        match stage:
-            case RunStage():
-                await _handle_run_stage(stage)
-            case BuildStage():
-                await _handle_build_stage(stage)
-            case DeployStage():
-                await _handle_deploy_stage(stage)
-            case _:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Unknown stage type: {stage['type']}",
-                )
+    logger.info("Scheduling pipeline stages...")
 
+    asyncio.create_task(run_pipeline(pipeline, db))
 
-async def _run_pipeline_parallel(stages: list[Stage]) -> None:
-    """Run all the stages concurrently without considering the order."""
-
-    logger.info("Running pipeline stages in parallel")
-    for stage in stages:
-        match stage:
-            case RunStage():
-                asyncio.create_task(_handle_run_stage(stage))
-            case BuildStage():
-                asyncio.create_task(_handle_build_stage(stage))
-            case DeployStage():
-                asyncio.create_task(_handle_deploy_stage(stage))
-            case _:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Unknown stage type: {stage['type']}",
-                )
-
-
-async def _handle_run_stage(stage: RunStage) -> None:
-    """Run the shell command in the Run stage."""
-    # Sanitize shell command to prevent shell injection
-    logger.info("Running command: %s", stage.command)
-
-
-async def _handle_build_stage(stage: BuildStage) -> None:
-    """Build a Docker image from the Dockerfile and push it to ECR."""
-    logger.info(
-        "Building Docker image from %s and pushing to %s",
-        stage.dockerfile,
-        stage.ecr_repository,
-    )
-
-
-async def _handle_deploy_stage(stage: DeployStage) -> None:
-    """Deploy the Kubernetes manifest to the specified cluster."""
-    logger.info("Deploying to cluster %s", stage.cluster.name)
-
-
-async def _cleanup(id: str, db: AsyncDB) -> None:
-    """Cleanup resources and remove pipeline config after a pipeline run."""
-    logger.info("Cleaning up resources")
-
-    # Remove the pipeline config from the database
-    await db.delete(id)
+    logger.info("All stages have been scheduled.")

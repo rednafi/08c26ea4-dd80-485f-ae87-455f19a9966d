@@ -20,6 +20,7 @@ class StageType(StrEnum):
     BUILD = "Build"
     DEPLOY = "Deploy"
 
+
 class BaseStage(BaseModel):
     name: str = Field(..., description="Name of the stage, e.g., lint, test, build.")
 

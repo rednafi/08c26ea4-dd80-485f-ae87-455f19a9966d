@@ -31,7 +31,9 @@ class TestRunStage:
             RunStage(name="Run tests", command="pytest", timeout=500)
 
     def test_invalid_type(self) -> None:
-        with pytest.raises(ValidationError, match=r"Input should be <StageType.RUN: 'Run'>"):
+        with pytest.raises(
+            ValidationError, match=r"Input should be <StageType.RUN: 'Run'>"
+        ):
             RunStage(
                 type="InvalidType", name="Run tests", command="pytest", timeout=500
             )
@@ -43,7 +45,10 @@ class TestRunStage:
     def test_invalid_timeout(self) -> None:
         with pytest.raises(ValidationError, match=r"Input should be a valid integer"):
             RunStage(
-                type=StageType.RUN, name="Run tests", command="pytest", timeout="not_a_number"
+                type=StageType.RUN,
+                name="Run tests",
+                command="pytest",
+                timeout="not_a_number",
             )
 
     def test_invalid_name(self) -> None:
@@ -83,7 +88,9 @@ class TestBuildStage:
             )
 
     def test_invalid_type(self) -> None:
-        with pytest.raises(ValidationError, match=r"Input should be <StageType.BUILD: 'Build'>"):
+        with pytest.raises(
+            ValidationError, match=r"Input should be <StageType.BUILD: 'Build'>"
+        ):
             BuildStage(
                 type="InvalidType",
                 name="Build Docker image",
@@ -164,7 +171,9 @@ class TestDeployStage:
             server_url="https://my-cluster.example.com",
             namespace="production",
         )
-        with pytest.raises(ValidationError, match=r"Input should be a valid dictionary"):
+        with pytest.raises(
+            ValidationError, match=r"Input should be a valid dictionary"
+        ):
             DeployStage(
                 type=StageType.DEPLOY,
                 name="deploy-app-stage",
@@ -217,7 +226,9 @@ class TestPipeline:
             name="CI Pipeline",
             git_repository="https://github.com/example/repo",
             stages=[
-                RunStage(type=StageType.RUN, name="Run tests", command="pytest", timeout=500),
+                RunStage(
+                    type=StageType.RUN, name="Run tests", command="pytest", timeout=500
+                ),
                 BuildStage(
                     type=StageType.BUILD,
                     name="Build Docker image",
