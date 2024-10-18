@@ -27,27 +27,31 @@ class TestRunStage:
         assert stage.timeout == 500
 
     def test_missing_type(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"type\n  Field required"):
             RunStage(name="Run tests", command="pytest", timeout=500)
 
     def test_invalid_type(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"Input should be <StageType.RUN: 'Run'>"):
             RunStage(
                 type="InvalidType", name="Run tests", command="pytest", timeout=500
             )
 
     def test_missing_command(self) -> None:
-        with pytest.raises(ValidationError):
-            RunStage(type="Run", name="Run tests", timeout=500)
+        with pytest.raises(ValidationError, match=r"command\n  Field required"):
+            RunStage(type=StageType.RUN, name="Run tests", timeout=500)
 
     def test_invalid_timeout(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"Input should be a valid integer"):
             RunStage(
-                type="Run", name="Run tests", command="pytest", timeout="not_a_number"
+                type=StageType.RUN, name="Run tests", command="pytest", timeout="not_a_number"
             )
 
+    def test_invalid_name(self) -> None:
+        with pytest.raises(ValidationError, match=r"Name cannot start with a number"):
+            RunStage(type=StageType.RUN, name="1test", command="pytest", timeout=500)
+
     def test_default_timeout(self) -> None:
-        stage = RunStage(type="Run", name="Run tests", command="pytest")
+        stage = RunStage(type=StageType.RUN, name="Run tests", command="pytest")
         assert stage.timeout == 600
 
 
@@ -70,7 +74,7 @@ class TestBuildStage:
         )
 
     def test_missing_type(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"type\n  Field required"):
             BuildStage(
                 name="Build Docker image",
                 dockerfile="FROM alpine",
@@ -79,7 +83,7 @@ class TestBuildStage:
             )
 
     def test_invalid_type(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"Input should be <StageType.BUILD: 'Build'>"):
             BuildStage(
                 type="InvalidType",
                 name="Build Docker image",
@@ -89,7 +93,7 @@ class TestBuildStage:
             )
 
     def test_missing_dockerfile(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"dockerfile\n  Field required"):
             BuildStage(
                 type=StageType.BUILD,
                 name="Build Docker image",
@@ -98,7 +102,7 @@ class TestBuildStage:
             )
 
     def test_invalid_ecr_url(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"Invalid ECR repository URL format"):
             BuildStage(
                 type=StageType.BUILD,
                 name="Build Docker image",
@@ -151,8 +155,8 @@ class TestDeployStage:
             server_url="https://my-cluster.example.com",
             namespace="production",
         )
-        with pytest.raises(ValidationError):
-            DeployStage(type="Deploy", name="deploy-app-stage", cluster=cluster)
+        with pytest.raises(ValidationError, match=r"k8s_manifest\n  Field required"):
+            DeployStage(type=StageType.DEPLOY, name="deploy-app-stage", cluster=cluster)
 
     def test_invalid_k8s_manifest_format(self) -> None:
         cluster = Cluster(
@@ -160,7 +164,7 @@ class TestDeployStage:
             server_url="https://my-cluster.example.com",
             namespace="production",
         )
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"Input should be a valid dictionary"):
             DeployStage(
                 type=StageType.DEPLOY,
                 name="deploy-app-stage",
@@ -187,7 +191,7 @@ class TestCluster:
         assert cluster.namespace == "default"
 
     def test_invalid_cluster_name(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"Invalid cluster name format"):
             Cluster(
                 name="invalid@name",
                 server_url="https://my-cluster.example.com",
@@ -195,11 +199,11 @@ class TestCluster:
             )
 
     def test_invalid_server_url(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"Input should be a valid URL"):
             Cluster(name="my-cluster", server_url="invalid-url", namespace="production")
 
     def test_invalid_namespace(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"Invalid namespace format"):
             Cluster(
                 name="my-cluster",
                 server_url="https://my-cluster.example.com",
@@ -213,7 +217,7 @@ class TestPipeline:
             name="CI Pipeline",
             git_repository="https://github.com/example/repo",
             stages=[
-                RunStage(type="Run", name="Run tests", command="pytest", timeout=500),
+                RunStage(type=StageType.RUN, name="Run tests", command="pytest", timeout=500),
                 BuildStage(
                     type=StageType.BUILD,
                     name="Build Docker image",
@@ -229,7 +233,7 @@ class TestPipeline:
         assert pipeline.parallel is True
 
     def test_missing_git_repository(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"git_repository\n  Field required"):
             Pipeline(
                 name="CI Pipeline",
                 stages=[
@@ -243,7 +247,7 @@ class TestPipeline:
             )
 
     def test_invalid_git_repository(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match=r"Input should be a valid URL"):
             Pipeline(
                 name="CI Pipeline",
                 git_repository="invalid-url",

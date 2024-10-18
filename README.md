@@ -5,27 +5,26 @@ configuration.
 
 ## Assumptions
 
--   The service allows sequential or parallel execution of the stages but doesn't resolve
-    any DAG (Directed Acyclic Graph) of dependent stages to allow one stage to depend on
-    another. All stages either run sequentially or in parallel.
+1. The service is only responsible for triggering the stages, not managing their execution.
 
--   In case of sequential execution of stages, order of execution is the same as they appear
-    in the input data. The expected order is `Run`, `Build`, and then `Deploy`. Conversely,
-    the stage appearance doesn't matter in parallel execution.
+2. It supports either sequential or parallel scheduling of stages but does not resolve any
+   DAG (Directed Acyclic Graph) of dependent stages. All stages are scheduled either
+   sequentially or in parallel.
 
--   By default, it'll execute any permutation-combination of the 3 stages in the same order
-    as they appear in the input data.
+3. In the case of sequential scheduling, stages execute in the order they appear in the
+   input data (e.g., `Run`, `Build`, `Deploy`). For parallel scheduling, the order does not
+   matter.
 
--   If something fails and we need to retry the pipeline, it'll be all or nothing.
-    Individual steps of an existing pipeline can't be retried.
+4. By default, stages are scheduled sequentially in the order they appear in the input data.
 
--   All stages must have names. Names must be unique within a configuration. Passing two
-    stages with the same name will incur a validation error.
+5. If a pipeline fails, the entire pipeline must be retried. There is no support for
+   retrying individual stages of an existing pipeline.
 
--   Validating Dockerfile without attempting to build it is non-trivial, so no validation
-    occurs there.
+6. Each stage must have a unique name within a pipeline configuration. If two stages share
+   the same name, a validation error will occur.
 
--   The datastructure used to store the pipeline config in memory is concurrency-safe. So
-    making concurrent calls won't corrupt it.
+7. Validating Dockerfiles or Kubernetes manifests before execution is non-trivial, so this
+   demo service does not perform any such validation.
 
-##
+8. The data structure used to store the pipeline configuration in memory is
+   concurrency-safe, ensuring that concurrent calls to the service do not corrupt the data.

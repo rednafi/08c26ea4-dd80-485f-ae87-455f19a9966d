@@ -20,8 +20,20 @@ class StageType(StrEnum):
     BUILD = "Build"
     DEPLOY = "Deploy"
 
+class BaseStage(BaseModel):
+    name: str = Field(..., description="Name of the stage, e.g., lint, test, build.")
 
-class RunStage(BaseModel):
+    @field_validator("name")
+    def validate_name(cls, value: str) -> str:
+        "Name cannot be empty or start with a number."
+        if not value:
+            raise ValueError("Name cannot be empty.")
+        if value[0].isdigit():
+            raise ValueError("Name cannot start with a number.")
+        return value
+
+
+class RunStage(BaseStage):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -35,7 +47,6 @@ class RunStage(BaseModel):
     type: Literal[StageType.RUN] = Field(
         ..., description="Type of the stage, should be 'Run'"
     )
-    name: str = Field(..., description="Name of the stage, e.g., lint, test.")
     command: str = Field(..., description="Shell command to run in this stage.")
     timeout: int = Field(
         600, description="Timeout for the stage in seconds, default 600."
@@ -47,7 +58,7 @@ class RunStage(BaseModel):
         return value
 
 
-class BuildStage(BaseModel):
+class BuildStage(BaseStage):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -62,7 +73,6 @@ class BuildStage(BaseModel):
     type: Literal[StageType.BUILD] = Field(
         ..., description="Type of the stage, should be 'Build'"
     )
-    name: str = Field(..., description="Name of the stage, e.g., build, package.")
     dockerfile: str = Field(..., description="Dockerfile content.")
     tag: str = Field(..., description="Docker image tag.")
     ecr_repository: str = Field(..., description="ECR repository URL path.")
@@ -72,7 +82,7 @@ class BuildStage(BaseModel):
         return value
 
     @field_validator("ecr_repository")
-    def validate_ecr_url(cls, value: str) -> str:
+    def validate_ecr_repository(cls, value: str) -> str:
         ecr_url_pattern = (
             r"^\d{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-zA-Z0-9-_]+$"
         )
@@ -127,7 +137,7 @@ class Cluster(BaseModel):
         return str(server_url)
 
 
-class DeployStage(BaseModel):
+class DeployStage(BaseStage):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -165,7 +175,6 @@ class DeployStage(BaseModel):
     type: Literal[StageType.DEPLOY] = Field(
         ..., description="Type of the stage, should be 'Deploy'"
     )
-    name: str = Field(..., description="Name of the stage, e.g., deploy, release.")
     k8s_manifest: dict[str, Any] = Field(
         ..., description="Kubernetes manifest in JSON format."
     )
@@ -246,6 +255,15 @@ class PipelineBase(BaseModel):
     @field_serializer("git_repository")
     def serialize_git_repository(self, git_repository: HttpUrl) -> str:
         return str(git_repository)
+
+    @field_validator("stages")
+    def validate_stages(cls, value: list[Stage]) -> list[Stage]:
+        # Check that the names of the stages are unique
+
+        stage_names = [stage.name for stage in value]
+        if len(stage_names) != len(set(stage_names)):
+            raise ValueError("Stage names must be unique.")
+        return value
 
 
 class Pipeline(PipelineBase):
