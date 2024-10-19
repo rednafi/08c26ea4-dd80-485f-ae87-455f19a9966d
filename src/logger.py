@@ -1,9 +1,10 @@
-"""Configure the custom logger."""
+"""Configure a custom logger."""
 
 import logging
 
 
 def configure_logger() -> None:
+    """Configure a custom logger."""
     # Create a logger
     logger = logging.getLogger("pipeline")
     logger.setLevel(logging.INFO)

@@ -11,20 +11,17 @@ class AsyncDB(Protocol):
 
     async def set(self, key: str, value: Any) -> None: ...
 
-    async def update(self, key: str, value: Any) -> None: ...
-
     async def delete(self, key: str) -> None: ...
-
-    async def safe_delete(self, key: str) -> None: ...
 
 
 class AsyncInMemoryDB(AsyncDB):
     """Concurrency-safe in-memory database implementation for async code."""
 
     def __init__(self) -> None:
+        """Initialize the in-memory database."""
         self._data: dict[str, Any] = {}
 
-        # Use asyncio.Lock for async compatibility and concurrency safety
+        # Use asyncio.Lock for async compatible concurrency safety
         self._lock = asyncio.Lock()
 
     async def get(self, key: str) -> Any:
@@ -35,18 +32,6 @@ class AsyncInMemoryDB(AsyncDB):
         async with self._lock:
             self._data[key] = value
 
-    async def update(self, key: str, value: Any) -> None:
-        async with self._lock:
-            if key not in self._data:
-                raise KeyError(f"Key {key} not found in the database")
-            self._data[key] = value
-
     async def delete(self, key: str) -> None:
-        async with self._lock:
-            if key not in self._data:
-                raise KeyError(f"Key {key} not found in the database")
-            del self._data[key]
-
-    async def safe_delete(self, key: str) -> None:
         async with self._lock:
             self._data.pop(key, None)

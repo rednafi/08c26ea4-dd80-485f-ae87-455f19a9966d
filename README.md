@@ -28,3 +28,119 @@ configuration.
 
 8. The data structure used to store the pipeline configuration in memory is
    concurrency-safe, ensuring that concurrent calls to the service do not corrupt the data.
+
+
+## CLI
+
+* Create a pipeline instance:
+
+```sh
+uv run python -m src.cli create-pipeline --username admin --password admin --data '{
+  "git_repository": "https://github.com/example/repo",
+  "name": "CI Pipeline",
+  "parallel": true,
+  "stages": [
+    {
+      "command": "pytest",
+      "name": "Run tests",
+      "timeout": 500,
+      "type": "Run"
+    }
+  ]
+}' | jq
+```
+
+```json
+{
+  "id": "a0305992-931e-4dc0-aa2b-893116f6542e",
+  "message": "Pipeline created successfully."
+}
+```
+
+* To get the previously created pipeline configuration, grab the pipeline ID from the
+response of the above request and pass it as follows:
+
+```sh
+uv run python -m src.cli get-pipeline \
+  --username admin \
+  --password admin \
+  --pipeline-id "a0305992-931e-4dc0-aa2b-893116f6542e" | jq
+```
+
+```json
+{
+  "name": "CI Pipeline",
+  "git_repository": "https://github.com/example/repo",
+  "stages": [
+    {
+      "name": "Run tests",
+      "type": "Run",
+      "command": "pytest",
+      "timeout": 500
+    }
+  ],
+  "parallel": true,
+  "id": "a0305992-931e-4dc0-aa2b-893116f6542e"
+}
+```
+
+* Update the pipeline:
+
+```sh
+uv run python -m src.cli update-pipeline \
+  --username admin \
+  --password admin \
+  --data '{
+    "git_repository": "https://github.com/example/repo",
+    "name": "CI Pipeline Updated",
+    "parallel": false,
+    "stages": [
+      {
+        "command": "pytest",
+        "name": "Run tests",
+        "timeout": 500,
+        "type": "Run"
+      }
+    ]
+  }' \
+  --pipeline-id "a0305992-931e-4dc0-aa2b-893116f6542e" | jq
+```
+
+```json
+{
+  "id": "a0305992-931e-4dc0-aa2b-893116f6542e",
+  "message": "Pipeline updated successfully."
+}
+```
+
+* Trigger the pipeline:
+
+```sh
+uv run python -m src.cli trigger-pipeline \
+  --username admin \
+  --password admin \
+  --pipeline-id "a0305992-931e-4dc0-aa2b-893116f6542e" | jq
+```
+
+```json
+{
+  "id": "a0305992-931e-4dc0-aa2b-893116f6542e",
+  "message": "Pipeline triggered successfully."
+}
+```
+
+* Delete the pipeline:
+
+```sh
+uv run python -m src.cli delete-pipeline \
+  --username admin \
+  --password admin \
+  --pipeline-id "a0305992-931e-4dc0-aa2b-893116f6542e" | jq
+```
+
+```json
+{
+  "id": "a0305992-931e-4dc0-aa2b-893116f6542e",
+  "message": "Pipeline deleted successfully."
+}
+```

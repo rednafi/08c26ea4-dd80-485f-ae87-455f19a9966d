@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from src.db import AsyncInMemoryDB
 from src.dto import Pipeline, PipelineResponse
 from src.main import app
-from tests.utils import get_basic_auth_header
+from src.utils import get_basic_auth_header
 
 client: TestClient = TestClient(app)
 

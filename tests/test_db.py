@@ -35,18 +35,6 @@ class TestAsyncInMemoryDB:
         result = await db.get("nonexistent")
         assert result is None
 
-    async def test_update_existing_key(self, db: AsyncInMemoryDB) -> None:
-        """Test updating an existing key in the database."""
-        await db.set("key1", "initial_value")
-        await db.update("key1", "updated_value")
-        async with db._lock:
-            assert db._data["key1"] == "updated_value"
-
-    async def test_update_nonexistent_key(self, db: AsyncInMemoryDB) -> None:
-        """Test that updating a non-existent key raises a KeyError."""
-        with pytest.raises(KeyError, match="Key key1 not found in the database"):
-            await db.update("key1", "new_value")
-
     async def test_delete_existing_key(self, db: AsyncInMemoryDB) -> None:
         """Test deleting an existing key."""
         await db.set("key1", "value1")
@@ -55,13 +43,8 @@ class TestAsyncInMemoryDB:
             assert "key1" not in db._data
 
     async def test_delete_nonexistent_key(self, db: AsyncInMemoryDB) -> None:
-        """Test that deleting a non-existent key raises a KeyError."""
-        with pytest.raises(KeyError, match="Key key1 not found in the database"):
-            await db.delete("key1")
-
-    async def test_safe_delete(self, db: AsyncInMemoryDB) -> None:
-        """Test safe deletion of a key."""
-        await db.safe_delete("nonexistent_key")  # No exception should be raised
+        """Test that deleting a non-existent key doesn't raise any KeyError."""
+        await db.delete("key1")
 
     async def test_concurrent_access(self, db: AsyncInMemoryDB) -> None:
         """Test that the database is safe for concurrent access."""
@@ -70,13 +53,6 @@ class TestAsyncInMemoryDB:
             await db.set(key, value)
             read_value = await db.get(key)
             assert read_value == value, f"Expected {value}, but got {read_value}"
-
-        async def update_task(key: str, new_value: Any) -> None:
-            await db.update(key, new_value)
-            updated_value = await db.get(key)
-            assert (
-                updated_value == new_value
-            ), f"Expected {new_value}, but got {updated_value}"
 
         async def delete_task(key: str) -> None:
             await db.delete(key)
@@ -91,7 +67,6 @@ class TestAsyncInMemoryDB:
 
                 # Concurrent updates
                 tg.create_task(read_write_task("key3", "initial"))
-                tg.create_task(update_task("key3", "updated_value"))
 
                 # Concurrent deletes
                 tg.create_task(read_write_task("key4", "to_be_deleted"))
@@ -102,10 +77,3 @@ class TestAsyncInMemoryDB:
 
         # Validate that no data persists after deletion
         assert await db.get("key4") is None, "Expected key4 to be deleted"
-
-        # Test edge case: try updating or deleting a non-existent key
-        with pytest.raises(KeyError):
-            await db.update("non_existent_key", "value")
-
-        with pytest.raises(KeyError):
-            await db.delete("non_existent_key")

@@ -1,8 +1,8 @@
 # type: ignore
 
-"""
-Test the handler functions. This is equivalent of e2e since the endpoints just call
-these functions.
+"""Test the handler functions. This is equivalent to end-to-end testing since the endpoints just call
+these functions. This file has been updated to reflect the changes in handler signatures and to
+include tests for cancellation, parallel, and sequential execution.
 """
 
 from unittest.mock import AsyncMock, patch
@@ -30,8 +30,14 @@ from src.handlers import (
 
 
 @pytest.fixture
-def db() -> AsyncInMemoryDB:
-    """Fixture for in-memory database instance."""
+def pipeline_db() -> AsyncInMemoryDB:
+    """Fixture for an in-memory pipeline database instance."""
+    return AsyncInMemoryDB()
+
+
+@pytest.fixture
+def runner_db() -> AsyncInMemoryDB:
+    """Fixture for an in-memory runner database instance."""
     return AsyncInMemoryDB()
 
 
@@ -42,9 +48,7 @@ def pipeline_request() -> PipelineRequest:
         name="CI Pipeline",
         git_repository=HttpUrl("https://github.com/example/repo"),
         stages=[
-            RunStage(
-                type=StageType.RUN, name="Run tests", command="pytest", timeout=500
-            ),
+            RunStage(type=StageType.RUN, name="Run tests", command="pytest", timeout=2),
             BuildStage(
                 type=StageType.BUILD,
                 name="Build Docker image",
@@ -88,37 +92,39 @@ def pipeline_request() -> PipelineRequest:
 
 
 async def test_handle_create_pipeline(
-    db: AsyncInMemoryDB, pipeline_request: PipelineRequest
+    pipeline_request: PipelineRequest,
+    pipeline_db: AsyncInMemoryDB,
 ) -> None:
     """Test creating a new pipeline."""
-    response = await handle_create_pipeline(pipeline_request, db)
+    response = await handle_create_pipeline(pipeline_request, pipeline_db)
 
     assert response.message == "Pipeline created successfully."
-    pipeline = await db.get(response.id)
+    pipeline = await pipeline_db.get(response.id)
     assert pipeline["name"] == "CI Pipeline"
     assert len(pipeline["stages"]) == 3
 
 
 async def test_handle_get_pipeline(
-    db: AsyncInMemoryDB, pipeline_request: PipelineRequest
-):
+    pipeline_request: PipelineRequest,
+    pipeline_db: AsyncInMemoryDB,
+) -> None:
     """Test retrieving an existing pipeline."""
-    # First create the pipeline
-    create_response = await handle_create_pipeline(pipeline_request, db)
+    # First, create the pipeline
+    create_response = await handle_create_pipeline(pipeline_request, pipeline_db)
 
     # Then fetch it using the ID
-    pipeline = await handle_get_pipeline(create_response.id, db)
+    pipeline = await handle_get_pipeline(create_response.id, pipeline_db)
     assert pipeline["name"] == "CI Pipeline"
     assert len(pipeline["stages"]) == 3
 
     # Check the pipeline exists in the database
-    assert await db.get(create_response.id) is not None
+    assert await pipeline_db.get(create_response.id) is not None
 
 
-async def test_handle_get_pipeline_not_found(db: AsyncInMemoryDB) -> None:
+async def test_handle_get_pipeline_not_found(pipeline_db: AsyncInMemoryDB) -> None:
     """Test trying to retrieve a non-existent pipeline."""
     with pytest.raises(HTTPException) as exc_info:
-        await handle_get_pipeline("non-existent-id", db)
+        await handle_get_pipeline("non-existent-id", pipeline_db)
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert (
         exc_info.value.detail
@@ -127,11 +133,12 @@ async def test_handle_get_pipeline_not_found(db: AsyncInMemoryDB) -> None:
 
 
 async def test_handle_update_pipeline(
-    db: AsyncInMemoryDB, pipeline_request: PipelineRequest
+    pipeline_request: PipelineRequest,
+    pipeline_db: AsyncInMemoryDB,
 ) -> None:
     """Test updating an existing pipeline."""
-    # First create the pipeline
-    create_response = await handle_create_pipeline(pipeline_request, db)
+    # First, create the pipeline
+    create_response = await handle_create_pipeline(pipeline_request, pipeline_db)
 
     # Update the pipeline
     updated_request = PipelineRequest(
@@ -140,20 +147,23 @@ async def test_handle_update_pipeline(
         stages=pipeline_request.stages,
         parallel=True,
     )
-    response = await handle_update_pipeline(create_response.id, updated_request, db)
+    response = await handle_update_pipeline(
+        create_response.id, updated_request, pipeline_db
+    )
 
     assert response.message == "Pipeline updated successfully."
-    pipeline = await db.get(create_response.id)
+    pipeline = await pipeline_db.get(create_response.id)
     assert pipeline["name"] == "Updated CI Pipeline"
     assert pipeline["parallel"] is True
 
 
 async def test_handle_update_pipeline_not_found(
-    db: AsyncInMemoryDB, pipeline_request: PipelineRequest
-):
+    pipeline_request: PipelineRequest,
+    pipeline_db: AsyncInMemoryDB,
+) -> None:
     """Test updating a non-existent pipeline."""
     with pytest.raises(HTTPException) as exc_info:
-        await handle_update_pipeline("non-existent-id", pipeline_request, db)
+        await handle_update_pipeline("non-existent-id", pipeline_request, pipeline_db)
     assert exc_info.value.status_code == 404
     assert (
         exc_info.value.detail
@@ -162,23 +172,27 @@ async def test_handle_update_pipeline_not_found(
 
 
 async def test_handle_delete_pipeline(
-    db: AsyncInMemoryDB, pipeline_request: PipelineRequest
-):
+    pipeline_request: PipelineRequest,
+    pipeline_db: AsyncInMemoryDB,
+    runner_db: AsyncInMemoryDB,
+) -> None:
     """Test deleting an existing pipeline."""
-    # First create the pipeline
-    create_response = await handle_create_pipeline(pipeline_request, db)
+    # First, create the pipeline
+    create_response = await handle_create_pipeline(pipeline_request, pipeline_db)
 
     # Then delete it
-    response = await handle_delete_pipeline(create_response.id, db)
+    response = await handle_delete_pipeline(create_response.id, pipeline_db, runner_db)
 
     assert response.message == "Pipeline deleted successfully."
-    assert await db.get(create_response.id) is None
+    assert await pipeline_db.get(create_response.id) is None
 
 
-async def test_handle_delete_pipeline_not_found(db: AsyncInMemoryDB):
+async def test_handle_delete_pipeline_not_found(
+    pipeline_db: AsyncInMemoryDB, runner_db: AsyncInMemoryDB
+) -> None:
     """Test trying to delete a non-existent pipeline."""
     with pytest.raises(HTTPException) as exc_info:
-        await handle_delete_pipeline("non-existent-id", db)
+        await handle_delete_pipeline("non-existent-id", pipeline_db, runner_db)
     assert exc_info.value.status_code == 404
     assert (
         exc_info.value.detail
@@ -186,17 +200,25 @@ async def test_handle_delete_pipeline_not_found(db: AsyncInMemoryDB):
     )
 
 
-@patch("src.handlers._schedule_pipeline", new_callable=AsyncMock)
+@patch("src.handlers.run_pipeline")
 async def test_handle_trigger_pipeline(
-    mock_schedule_pipeline: AsyncMock,
-    db: AsyncInMemoryDB,
+    mock_run_pipeline: AsyncMock,
     pipeline_request: PipelineRequest,
-):
-    """Test triggering a pipeline with mocked stages and ensuring cleanup."""
-    create_response = await handle_create_pipeline(pipeline_request, db)
+    pipeline_db: AsyncInMemoryDB,
+    runner_db: AsyncInMemoryDB,
+) -> None:
+    """Test triggering a pipeline and ensure that it's scheduled correctly."""
+    create_response = await handle_create_pipeline(pipeline_request, pipeline_db)
 
-    # Trigger the pipeline and ensure that tasks are executed
-    response = await handle_trigger_pipeline(create_response.id, db)
+    # Trigger the pipeline
+    response = await handle_trigger_pipeline(create_response.id, pipeline_db, runner_db)
     assert response.message == "Pipeline triggered successfully."
 
-    assert mock_schedule_pipeline.await_count == 1
+    # Ensure that run_pipeline was called
+    mock_run_pipeline.assert_called_once()
+
+    # Check that the pipeline task is stored in runner_db
+    runner_data = await runner_db.get(create_response.id)
+    assert runner_data is not None
+    assert runner_data["status"] == "running"
+    assert "task" in runner_data

@@ -1,5 +1,4 @@
-"""
-This makes real HTTP calls to local API endpoints and checks the responses, making it a great way
+"""This makes real HTTP calls to local API endpoints and checks the responses, making it a great way
 to test the whole system end-to-end. Read this file if you want a quick understanding of how the
 entire API suite behaves.
 
@@ -19,7 +18,7 @@ import httpx
 import pytest
 from fastapi import status
 
-from tests.utils import get_basic_auth_header
+from src.utils import get_basic_auth_header
 
 
 @pytest.mark.integration
@@ -136,7 +135,6 @@ class TestPipelineIntegration:
     @pytest.mark.order(2)
     async def test_get_pipeline(self) -> None:
         """This test depends on the test_create_pipeline test to pass."""
-
         # Test to get the created pipeline by ID
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}"
@@ -151,7 +149,6 @@ class TestPipelineIntegration:
     @pytest.mark.order(3)
     async def test_update_pipeline(self) -> None:
         """This test depends on the test_create_pipeline test to pass."""
-
         # Test to update the created pipeline
         payload = {
             "git_repository": "https://github.com/example/repo",
@@ -179,7 +176,6 @@ class TestPipelineIntegration:
     @pytest.mark.order(4)
     async def test_trigger_pipeline(self) -> None:
         """This test depends on the test_create_pipeline test to pass."""
-
         # Test to trigger the created pipeline
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}/trigger"
@@ -193,7 +189,6 @@ class TestPipelineIntegration:
     @pytest.mark.order(5)
     async def test_delete_pipeline(self) -> None:
         """This test depends on the test_create_pipeline test to pass."""
-
         # Test to delete the created pipeline
         async with httpx.AsyncClient() as client:
             url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}"

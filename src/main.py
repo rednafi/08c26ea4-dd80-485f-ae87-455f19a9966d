@@ -42,6 +42,7 @@ def verify_credentials(credentials: Annotated[HTTPBasicCredentials, Depends(secu
 
 
 def init_app() -> FastAPI:
+    """Initialize the FastAPI application."""
     # Configure the logger
     configure_logger()
 

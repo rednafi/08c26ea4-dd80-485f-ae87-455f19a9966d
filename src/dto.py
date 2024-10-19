@@ -1,4 +1,4 @@
-"""Data Transfer Objects for the request and responses."""
+"""Data Transfer Objects (DTOs) for the request and responses."""
 
 import re
 from enum import StrEnum
@@ -16,17 +16,21 @@ from pydantic import (
 
 
 class StageType(StrEnum):
+    """Enum for the supported stage types."""
+
     RUN = "Run"
     BUILD = "Build"
     DEPLOY = "Deploy"
 
 
 class BaseStage(BaseModel):
+    """Base model for the stages."""
+
     name: str = Field(..., description="Name of the stage, e.g., lint, test, build.")
 
     @field_validator("name")
     def validate_name(cls, value: str) -> str:
-        "Name cannot be empty or start with a number."
+        """Name cannot be empty or start with a number."""
         if not value:
             raise ValueError("Name cannot be empty.")
         if value[0].isdigit():
@@ -35,6 +39,8 @@ class BaseStage(BaseModel):
 
 
 class RunStage(BaseStage):
+    """Model for the run stage."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -60,6 +66,8 @@ class RunStage(BaseStage):
 
 
 class BuildStage(BaseStage):
+    """Model for the build stage."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -96,6 +104,8 @@ class BuildStage(BaseStage):
 
 
 class Cluster(BaseModel):
+    """Model for the Kubernetes cluster."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -139,6 +149,8 @@ class Cluster(BaseModel):
 
 
 class DeployStage(BaseStage):
+    """Model for the deploy stage."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -190,6 +202,8 @@ Stage = RunStage | BuildStage | DeployStage
 
 
 class PipelineBase(BaseModel):
+    """Base model for the pipeline."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -268,6 +282,8 @@ class PipelineBase(BaseModel):
 
 
 class Pipeline(PipelineBase):
+    """Model for the pipeline."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -284,12 +300,16 @@ class Pipeline(PipelineBase):
 
 
 class PipelineRequest(PipelineBase):
+    """Request model for creating a new pipeline."""
+
     model_config = ConfigDict(
         json_schema_extra=PipelineBase.model_config["json_schema_extra"]
     )
 
 
 class PipelineResponse(BaseModel):
+    """Response model for the pipeline creation."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
