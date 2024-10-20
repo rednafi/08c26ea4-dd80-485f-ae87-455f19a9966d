@@ -1,5 +1,4 @@
 <p align="left">
-  <img src="./img/logo.png" alt="Pipeline Image" width="128" height="128" align="right">
   <h1>Pipeline</h1>
 </p>
 
