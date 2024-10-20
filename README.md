@@ -1,9 +1,8 @@
-<div align="left">
-  <h1 style="display: inline;">Pipeline</h1>
-  <img src="./img/logo.png"
-       alt="Pipeline Image"
-       style="float: right; width: 128px; height: 128px; margin-left: 10px;">
-</div>
+<p align="left">
+  <img src="./img/logo.png" alt="Pipeline Image" width="128" height="128" align="right">
+  <h1>Pipeline</h1>
+</p>
+
 
 A minimal RESTful API that lets you set up and manage a simple CI/CD pipeline configuration.
 
