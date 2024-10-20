@@ -12,6 +12,9 @@ lint-check:
 test:
 	@uv run pytest -vv -k 'not integration'
 
+test-integration:
+	@uv run pytest -vv -k 'integration'
+
 run-local:
 	@uv run uvicorn src.main:app --host 0.0.0.0 --port 5001 --reload
 

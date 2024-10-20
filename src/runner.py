@@ -166,6 +166,8 @@ async def _execute_run_stage(stage: RunStage) -> None:
 async def _execute_build_stage(stage: BuildStage) -> None:
     """Execute the build stage."""
     logger.info("Running stage '%s' of type 'build'.", stage.name)
+    logger.info("Building the application...")
+    logger.info("Uploading to ecr...")
 
     # Simulate the execution of the stage
     await asyncio.sleep(3)
@@ -176,6 +178,7 @@ async def _execute_build_stage(stage: BuildStage) -> None:
 async def _execute_deploy_stage(stage: DeployStage) -> None:
     """Execute the deploy stage."""
     logger.info("Running stage '%s' of type 'deploy'.", stage.name)
+    logger.info("Deploying the application to k8s...")
 
     # Simulate the execution of the stage
     await asyncio.sleep(5)

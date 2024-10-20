@@ -57,6 +57,18 @@ def cli() -> None:
 
 
 @cli.command()
+@url_option
+def ping(base_url: str) -> None:
+    """Ping the API server to check if it is running."""
+    try:
+        response = httpx.get(base_url, follow_redirects=True)
+    except Exception as e:
+        click.echo(f"An error occurred while pinging the server. Error: {e}", err=True)
+        return
+    click.echo(response.text)
+
+
+@cli.command()
 @auth_options
 @url_option
 @click.option(

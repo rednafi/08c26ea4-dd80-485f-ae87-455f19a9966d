@@ -40,7 +40,22 @@ PipelineDB = Annotated[AsyncDB, Depends(get_pipeline_db)]
 RunnerDB = Annotated[AsyncDB, Depends(get_runner_db)]
 
 
-@router.post("/pipelines", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/pipelines",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_201_CREATED: {
+            "description": "Create pipeline",
+            "content": {
+                "application/json": {
+                    "example": PipelineResponse.model_config["json_schema_extra"][
+                        "example"
+                    ]["create"]  # type: ignore
+                }
+            },
+        }
+    },
+)
 async def create_pipeline(
     pipeline_request: PipelineRequest, pipeline_db: PipelineDB
 ) -> PipelineResponse:
@@ -54,7 +69,21 @@ async def get_pipeline(id: str, pipeline_db: PipelineDB) -> Pipeline:
     return await handle_get_pipeline(id, pipeline_db)
 
 
-@router.put("/pipelines/{id}")
+@router.put(
+    "/pipelines/{id}",
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Update pipeline",
+            "content": {
+                "application/json": {
+                    "example": PipelineResponse.model_config["json_schema_extra"][
+                        "example"
+                    ]["update"]  # type: ignore
+                }
+            },
+        }
+    },
+)
 async def update_pipeline(
     id: str, pipeline_request: PipelineRequest, pipeline_db: PipelineDB
 ) -> PipelineResponse:
@@ -62,7 +91,21 @@ async def update_pipeline(
     return await handle_update_pipeline(id, pipeline_request, pipeline_db)
 
 
-@router.delete("/pipelines/{id}")
+@router.delete(
+    "/pipelines/{id}",
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Delete pipeline",
+            "content": {
+                "application/json": {
+                    "example": PipelineResponse.model_config["json_schema_extra"][
+                        "example"
+                    ]["delete"]  # type: ignore
+                }
+            },
+        }
+    },
+)
 async def delete_pipeline(
     id: str, pipeline_db: PipelineDB, runner_db: RunnerDB
 ) -> PipelineResponse:
@@ -70,7 +113,21 @@ async def delete_pipeline(
     return await handle_delete_pipeline(id, pipeline_db, runner_db)
 
 
-@router.post("/pipelines/{id}/trigger")
+@router.post(
+    "/pipelines/{id}/trigger",
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Trigger pipeline",
+            "content": {
+                "application/json": {
+                    "example": PipelineResponse.model_config["json_schema_extra"][
+                        "example"
+                    ]["trigger"]  # type: ignore
+                }
+            },
+        }
+    },
+)
 async def trigger_pipeline(
     id: str, pipeline_db: PipelineDB, runner_db: RunnerDB
 ) -> PipelineResponse:

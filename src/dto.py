@@ -313,8 +313,22 @@ class PipelineResponse(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "id": "550e8400-e29b-41d4-a716-446655440000",
-                "message": "Pipeline has been successfully created.",
+                "create": {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "message": "Pipeline created successfully.",
+                },
+                "update": {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "message": "Pipeline updated successfully.",
+                },
+                "delete": {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "message": "Pipeline deleted successfully.",
+                },
+                "trigger": {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "message": "Pipeline triggered successfully.",
+                },
             }
         }
     )

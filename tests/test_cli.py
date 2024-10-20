@@ -16,6 +16,17 @@ def runner() -> CliRunner:
     return CliRunner()
 
 
+def test_ping(runner: CliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test the ping command."""
+
+    mock_get = Mock(
+        return_value=httpx.Response(status_code=status.OK, json={"message": "Pong"})
+    )
+    monkeypatch.setattr(httpx, "get", mock_get)
+    result = runner.invoke(cli, ["ping"])
+    assert result.exit_code == 0
+
+
 def test_create_pipeline_success(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -81,7 +92,7 @@ def test_create_pipeline_server_error(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test creating a pipeline with server returning error."""
-    mock_post: Mock = Mock(
+    mock_post = Mock(
         return_value=httpx.Response(
             status.INTERNAL_SERVER_ERROR, json={"error": "Server error"}
         )
@@ -121,7 +132,7 @@ def test_get_pipeline_success(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test retrieving a pipeline with valid inputs."""
-    mock_get: Mock = Mock(
+    mock_get = Mock(
         return_value=httpx.Response(
             status.OK, json={"id": "123", "name": "test_pipeline"}
         )
@@ -160,7 +171,7 @@ def test_get_pipeline_not_found(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test retrieving a pipeline that does not exist."""
-    mock_get: Mock = Mock(
+    mock_get = Mock(
         return_value=httpx.Response(
             status.NOT_FOUND, json={"error": "Pipeline not found"}
         )
@@ -199,7 +210,7 @@ def test_update_pipeline_success(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test updating a pipeline with valid inputs."""
-    mock_put: Mock = Mock(
+    mock_put = Mock(
         return_value=httpx.Response(status.OK, json={"message": "Pipeline updated"})
     )
     monkeypatch.setattr(httpx, "put", mock_put)
@@ -239,7 +250,7 @@ def test_update_pipeline_invalid_data(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test updating a pipeline with invalid data."""
-    mock_put: Mock = Mock(
+    mock_put = Mock(
         return_value=httpx.Response(status.BAD_REQUEST, json={"error": "Invalid data"})
     )
     monkeypatch.setattr(httpx, "put", mock_put)
@@ -279,7 +290,7 @@ def test_delete_pipeline_success(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test deleting a pipeline with valid inputs."""
-    mock_delete: Mock = Mock(
+    mock_delete = Mock(
         return_value=httpx.Response(status.OK, json={"message": "Pipeline deleted"})
     )
     monkeypatch.setattr(httpx, "delete", mock_delete)
@@ -316,7 +327,7 @@ def test_delete_pipeline_not_found(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test deleting a pipeline that does not exist."""
-    mock_delete: Mock = Mock(
+    mock_delete = Mock(
         return_value=httpx.Response(
             status.NOT_FOUND, json={"error": "Pipeline not found"}
         )
