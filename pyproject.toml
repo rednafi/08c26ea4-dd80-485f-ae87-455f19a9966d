@@ -58,6 +58,7 @@ convention = "google"
 addopts = "--strict-markers --maxfail 1 --cov tests/ --no-header"
 markers = """
     integration: mark a test as an integration test.
+    order: marker to specify test order.
 """
 console_output_style = "progress"
 asyncio_mode = "auto"
