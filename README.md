@@ -1,15 +1,6 @@
-<h1>
-  <img src="./img/logo.png"
-      alt="Pipeline logo"
-      title="Pipeline"
-      height="40"
-      style="vertical-align: middle;"
-  />
-    Pipeline
-</h1>
+# Pipeline
 
-A minimal RESTful API suite that lets you set up and manage a simple CI/CD pipeline
-configuration.
+A minimal RESTful API suite that lets you set up and manage a simple CI/CD pipeline configuration.
 
 ## Assumptions
 
