@@ -1,4 +1,6 @@
-# Pipeline
+<a href="https://rednafi.com">
+    <img src="./img/logo.png" alt="Pipeline logo" title="Pipeline" align="right" height="80" />
+</a>
 
 A minimal RESTful API suite that lets you set up and manage a simple CI/CD pipeline
 configuration.
