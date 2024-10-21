@@ -23,3 +23,9 @@ run-container:
 
 kill-container:
 	@docker-compose down -t 1
+
+archive: ## Create a tarball of the project
+	@tar -czvf src.tar.gz src
+
+unarchive: ## Extract the tarball of the project
+	@tar -xzvf src.tar.gz

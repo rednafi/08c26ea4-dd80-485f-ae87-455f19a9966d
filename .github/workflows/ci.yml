@@ -6,12 +6,6 @@ on:
       - main
   pull_request:
 
-# If you trigger a new workflow while the previous one is running,
-# this will cancel the previous one.
-concurrency:
-  group: ${{ github.ref }} # Cancels previous runs only on the same branch
-  cancel-in-progress: true
-
 jobs:
   build_and_test:
     strategy:
