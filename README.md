@@ -577,7 +577,7 @@ Dependencies are managed via [uv]. To add, remove, or update dependencies, use t
 
 ### CI
 
-There's a rudimentary CI file in the `.github/workers` directory that uses [GitHub Actions] to
+There's a rudimentary CI [file] in the `.github/workers` directory that uses [GitHub Actions] to
 run the following steps on every commit and PR:
 
 -   Check linter conformity
@@ -604,6 +604,7 @@ requests.
    but it does validate other fields and returns HTTP 4xx errors when applicable.
 4. Currently, the `PUT /pipelines/{id}` endpont doesn't allow partial update; the entire
    configuration will be replaced with the incoming payload.
+5. The CI doesn't deploy the service anywhere; it just builds and runs the tests there.
 
 ---
 
@@ -630,3 +631,4 @@ requests.
 [mypy]: https://www.mypy-lang.org/
 [gunicorn]: https://gunicorn.org/
 [github actions]: https://docs.github.com/en/actions
+[file]: ./.github/workflows/ci.yml
