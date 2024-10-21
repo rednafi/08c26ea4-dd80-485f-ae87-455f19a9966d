@@ -595,6 +595,13 @@ uses [uvicorn] to expose the endpoints. However, on production setups, [gunicorn
 processes are spawned and inside each process, multiple [uvicorn] workers serves the inbound
 requests.
 
+## Security considerations
+
+The service currently ships with its own .env file for managing configurations. This was
+done intentionally to avoid executing cumbersome instructions when spinning up the server.
+
+In the production environment, these variables will be read from a dedicated vault.
+
 ## Constraints and limitations
 
 1. During sequential stage execution, if a stage fails, the runner will not execute

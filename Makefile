@@ -1,4 +1,4 @@
-.PHONY: $(MAKECMDGOALS)
+.PHONY: $(MAKECMDGOALS) # Avoid conflicts with files in the directory
 
 lint:
 	@uv run ruff format .
