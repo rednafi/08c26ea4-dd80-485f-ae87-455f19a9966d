@@ -25,7 +25,22 @@ kill-container:
 	@docker-compose down -t 1
 
 archive: ## Create a tarball of the project
-	@tar -czvf src.tar.gz src
+	@tar \
+    	--exclude='.venv' \
+    	--exclude='.pytest_cache' \
+    	--exclude='.mypy_cache' \
+    	--exclude='.ruff_cache' \
+    	--exclude='.git' \
+    	--exclude='.vscode' \
+    	--exclude='.coverage' \
+    	--exclude="*/__pycache__" \
+		--exclude=".DS_Store" \
+		--exclude="*/.DS_Store" \
+		--exclude=".tar" \
+		--exclude="pipeline" \
+    	-cvf pipeline.tar .
+
 
 unarchive: ## Extract the tarball of the project
-	@tar -xzvf src.tar.gz
+	@mkdir -p ./pipeline
+	@tar -xvf pipeline.tar -C ./pipeline

@@ -1,6 +1,7 @@
 # Pipeline
 
-A minimal RESTful API suite that lets you set up and manage a simple CI/CD pipeline configuration.
+A minimal RESTful API suite that lets you set up and manage a simple CI/CD pipeline
+configuration.
 
 ## Assumptions
 
@@ -577,8 +578,8 @@ Dependencies are managed via [uv]. To add, remove, or update dependencies, use t
 
 ### CI
 
-There's a rudimentary CI [file] in the `.github/workers` directory that uses [GitHub Actions] to
-run the following steps on every commit and PR:
+There's a rudimentary CI [file] in the `.github/workers` directory that uses [GitHub
+Actions] to run the following steps on every commit and PR:
 
 -   Check linter conformity
 -   Run the unit tests
