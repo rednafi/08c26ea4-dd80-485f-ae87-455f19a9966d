@@ -584,7 +584,7 @@ run the following steps on every commit and PR:
 -   Run the unit tests
 -   Build the container
 -   Spin up the server
--   Run the integration tests
+-   Do a health check
 -   Clean everything up
 
 ### Deployment

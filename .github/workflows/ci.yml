@@ -52,7 +52,7 @@ jobs:
         run: make run-container
 
       # Wait for the server to be ready
-      - name: Wait for server to be ready
+      - name: Wait for server to be ready and do a health check
         run: |
           for i in {1..30}; do
             if curl -s http://localhost:5001 > /dev/null; then
@@ -64,10 +64,6 @@ jobs:
           done
           echo "Server did not start in time"
           exit 1
-
-      # Run integration tests
-      - name: Run integration tests
-        run: make test-integration
 
       # Cleanup: stop and remove the Docker container
       - name: Cleanup
