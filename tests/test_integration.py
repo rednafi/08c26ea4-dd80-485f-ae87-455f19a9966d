@@ -23,7 +23,7 @@ from src.utils import get_basic_auth_header
 
 # Redefine the event_loop fixture with session scope
 @pytest.fixture(scope="session")
-def event_loop() -> asyncio.AbstractEventLoop: # type: ignore
+def event_loop() -> asyncio.AbstractEventLoop:  # type: ignore
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
