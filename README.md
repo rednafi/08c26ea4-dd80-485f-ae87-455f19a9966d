@@ -1,8 +1,12 @@
-## Pipeline
-
-<a href="https://rednafi.com">
-    <img src="./img/logo.png" alt="Pipeline logo" title="Pipeline" align="right" height="100" />
-</a>
+<h1>
+  <img src="./img/logo.png"
+      alt="Pipeline logo"
+      title="Pipeline"
+      height="32"
+      style="vertical-align: middle;"
+  />
+    Pipeline
+</h1>
 
 A minimal RESTful API suite that lets you set up and manage a simple CI/CD pipeline
 configuration.
@@ -39,15 +43,19 @@ Here's a high-level overview of the service's architecture:
 
 ![Architecture diagram][arch-diagram]
 
--   **POST /pipelines** creates a new pipeline from a JSON configuration, validates the
-    data, and stores the pipeline in the database.
--   **GET /pipelines/{id}** retrieves a pipeline by its ID after verifying its existence in
+-   `POST /pipelines` creates a new pipeline from a JSON configuration, validates the data,
+    and stores the pipeline in the database.
+
+-   `GET /pipelines/{id}` retrieves a pipeline by its ID after verifying its existence in
     the database.
--   **PUT /pipelines/{id}** updates an existing pipeline configuration, validates the new
+
+-   `PUT /pipelines/{id}` updates an existing pipeline configuration, validates the new
     data, and stores the updates in the database.
--   **DELETE /pipelines/{id}** deletes a pipeline by its ID after confirming its existence.
--   **POST /pipelines/{id}/trigger** triggers the pipeline’s stages, which run sequentially
-    or in parallel depending on the `parallel` parameter set during creation.
+
+-   `DELETE /pipelines/{id}` deletes a pipeline by its ID after confirming its existence.
+
+-   `POST /pipelines/{id}/trigger` triggers the pipeline’s stages, which run sequentially or
+    in parallel depending on the `parallel` parameter set during creation.
 
 The service is written in [Python 3.13], uses [FastAPI] for the API, and [uv] for managing dependencies.
 

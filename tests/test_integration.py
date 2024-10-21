@@ -137,7 +137,7 @@ class TestPipelineIntegration:
         """This test depends on the test_create_pipeline test to pass."""
         # Test to get the created pipeline by ID
         async with httpx.AsyncClient() as client:
-            url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}"
+            url = f"{self.base_url}/v1/pipelines/{self.pipeline_id}/"
             response = await client.get(
                 url, headers=self.headers, follow_redirects=True
             )
