@@ -2,7 +2,7 @@
   <img src="./img/logo.png"
       alt="Pipeline logo"
       title="Pipeline"
-      height="32"
+      height="40"
       style="vertical-align: middle;"
   />
     Pipeline
