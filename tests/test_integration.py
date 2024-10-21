@@ -23,7 +23,7 @@ from src.utils import get_basic_auth_header
 
 # Redefine the event_loop fixture with session scope
 @pytest.fixture(scope="session")
-def event_loop():
+def event_loop() -> asyncio.AbstractEventLoop: # type: ignore
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
@@ -31,12 +31,12 @@ def event_loop():
 
 # Define fixtures for shared resources
 @pytest.fixture(scope="session")
-def base_url():
+def base_url() -> str:
     return "http://0.0.0.0:5001"
 
 
 @pytest.fixture(scope="session")
-def headers():
+def headers() -> dict[str, str]:
     return {
         "accept": "application/json",
         "Content-Type": "application/json",
