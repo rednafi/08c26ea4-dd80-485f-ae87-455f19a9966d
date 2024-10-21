@@ -36,8 +36,9 @@ async def get_runner_db() -> AsyncDB:
 
 # Using dependency injection to provide the same instance of the database to all routes
 # This allows us to easily test the route handlers by passing in a mock database instance
-PipelineDB = Annotated[AsyncDB, Depends(get_pipeline_db)]
-RunnerDB = Annotated[AsyncDB, Depends(get_runner_db)]
+
+PipelineDB = Annotated[AsyncDB, Depends(get_pipeline_db)]  # Manages pipeline config
+RunnerDB = Annotated[AsyncDB, Depends(get_runner_db)]  # Manages pipeline runner state
 
 
 @router.post(

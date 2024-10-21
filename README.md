@@ -1,72 +1,63 @@
-<p align="left">
-  <h1>Pipeline</h1>
-</p>
+# Pipeline
 
-
-A minimal RESTful API that lets you set up and manage a simple CI/CD pipeline configuration.
+A minimal RESTful API suite that lets you set up and manage a simple CI/CD pipeline
+configuration.
 
 ## Assumptions
 
-1. This assumes that the `pipeline` service is primarily responsible for scheduling the
-   stages, not managing their execution. So there's a separate runner module in the `src`
-   directory that acts like a task runner. The pipeline service could call the runner via
-   RPC, but here it delegates stage execution to the `runner.run_pipeline` function.
+1. The `pipeline` service primarily handles scheduling stages but doesn't manage their
+   execution directly. There's a separate runner module in the `src` directory that acts as
+   the task runner. While the pipeline service could use RPC to call the runner, here it
+   delegates the execution of stages to the `runner.run_pipeline` function.
 
-2. It supports either sequential or parallel scheduling of stages but doesn’t handle
-   resolving any DAG (Directed Acyclic Graph) of dependent stages. All stages are either
-   scheduled sequentially or in parallel.
+2. The service supports both sequential and parallel scheduling of stages. However, it
+   doesn’t handle resolving a DAG (Directed Acyclic Graph) for dependent stages. All stages
+   are either scheduled to run sequentially or in parallel.
 
-3. In sequential scheduling, stages execute in the order they appear in the input data
-   (e.g., `Run`, `Build`, `Deploy`). For parallel scheduling, the order doesn’t matter.
+3. When scheduling sequentially, stages are executed in the order they appear in the input
+   (e.g., `Run`, `Build`, `Deploy`). For parallel scheduling, the order is irrelevant.
 
-4. By default, stages are scheduled sequentially. But if you pass `parallel: true` during
-   pipeline creation, it will schedule the tasks to run in parallel.
+4. By default, stages are scheduled sequentially. If you pass `parallel: true` during
+   pipeline creation, the stages will run in parallel.
 
-5. If a pipeline fails, the entire pipeline has to be retried. There’s no support for
-   retrying individual stages within an existing pipeline.
+5. If a pipeline fails, the entire pipeline must be retried. The service does not support
+   retrying individual stages.
 
-6. Each stage must have a unique name within a pipeline configuration. If two stages share
-   the same name, a validation error will occur.
+6. Each stage within a pipeline configuration must have a unique name. If there are
+   duplicate names, a validation error will be raised.
 
-7. The data structure used to store the pipeline configuration in memory is
-   concurrency-safe, ensuring that concurrent calls to the service don’t corrupt the data.
+7. The pipeline configuration is stored in a concurrency-safe data structure, ensuring that
+   concurrent service calls don’t cause data corruption.
 
 ## Architecture
 
-Here's a diagram that gives a high-level overview of the service's architecture:
+Here's a high-level overview of the service's architecture:
 
 ![Architecture diagram][arch-diagram]
 
--   **POST /pipelines** lets you create a new pipeline from a JSON configuration. It first
-    checks if the data is valid, then stores the pipeline in the database.
+-   **POST /pipelines** creates a new pipeline from a JSON configuration, validates the
+    data, and stores the pipeline in the database.
+-   **GET /pipelines/{id}** retrieves a pipeline by its ID after verifying its existence in
+    the database.
+-   **PUT /pipelines/{id}** updates an existing pipeline configuration, validates the new
+    data, and stores the updates in the database.
+-   **DELETE /pipelines/{id}** deletes a pipeline by its ID after confirming its existence.
+-   **POST /pipelines/{id}/trigger** triggers the pipeline’s stages, which run sequentially
+    or in parallel depending on the `parallel` parameter set during creation.
 
--   **GET /pipelines/{id}** fetches a pipeline by its ID. It ensures the pipeline exists
-    before retrieving it from the database.
-
--   **PUT /pipelines/{id}** updates an existing pipeline's configuration. It validates the
-    new data and updates the pipeline in the database.
-
--   **DELETE /pipelines/{id}** deletes a pipeline by ID, but only after verifying that the
-    pipeline exists. If it does, the pipeline is removed from the database.
-
--   **POST /pipelines/{id}/trigger** triggers the pipeline's stages, which can run either
-    sequentially or in parallel, depending on whether `parallel` is set to `true` or `false`
-    during pipeline creation.
-
-The service is written in [Python 3.13], uses [FastAPI] for building the endpoints, and [uv]
-for managing the dependencies.
+The service is written in [Python 3.13], uses [FastAPI] for the API, and [uv] for managing dependencies.
 
 ## Prerequisites
 
--   You can start using the system right away if you have [Docker] installed.
--   To run tests and use the CLI, make sure you have:
+-   Install [Docker] to quickly spin up the service.
+-   To run tests or use the CLI, make sure you have the following installed locally:
     -   [Python 3.13]
     -   [uv]
--   Install [jq] to pretty-print JSON output from API responses.
+-   Install [jq] for pretty-printing JSON API responses.
 
 ## Run the service
 
-### Run in a container
+### In a container
 
 From the root directory, run:
 
@@ -74,31 +65,28 @@ From the root directory, run:
 make run-container
 ```
 
-This will spin up the complete service in a single container and expose it through
-`http://localhost:5001`.
+This spins up the service in a container, exposing it at `http://localhost:5001`.
 
-### Or, run locally
+### Or, locally
 
-Once you have Python 3.13 and `uv` installed locally, from the root directory, run:
+With Python 3.13 and `uv` installed locally, run the following from the root directory:
 
 ```sh
 make run-local
 ```
 
-This will create a Python 3.13 virtual environment, install the dependencies, and start a
-[uvicorn] server with the application.
+This sets up a Python 3.13 virtual environment, installs dependencies, and starts a
+[uvicorn] server running the application.
 
 ## Explore the endpoints
 
 ### Via cURL
 
-We'll primarily use `cURL` to interact with the endpoints. Regardless of how you start the
-service, it'll be accessible on your local machine via port `5001`.
+We'll use `cURL` to interact with the endpoints. The service runs locally on port `5001`.
 
 #### Create a pipeline
 
-To create a new pipeline configuration, make the following request to the `POST /pipelines`
-endpoint:
+To create a pipeline configuration, use the `POST /pipelines` endpoint:
 
 ```sh
 curl -X 'POST' \
@@ -172,26 +160,13 @@ curl -X 'POST' \
 }' | jq
 ```
 
-The endpoint uses HTTP basic authentication, so we need to include the username and password
-when making the request, both of which are `admin` by default. That's why we add the
-base64-encoded header: `-H 'Authorization: Basic YWRtaW46YWRtaW4='`.
-
-Also, notice that we're providing data for all the supported stages: `Run`, `Build`, and
-`Deploy`.
-
-This returns (jq pretty-prints the output):
-
-```json
-{
-  "id": "078ba92d-63fc-4106-b9da-ac2fc6f2cec5",
-  "message": "Pipeline created successfully."
-}
-```
+This request uses HTTP basic authentication (`admin` as both the username and password), and
+the base64-encoded authorization header is included. The output will include the ID of the
+newly created pipeline.
 
 #### Get a pipeline
 
-To fetch the pipeline configuration you just created, extract its ID and pass it to the
-`GET` call as follows:
+To retrieve a pipeline configuration, pass its ID to the `GET /pipelines/{id}` endpoint:
 
 ```sh
 curl -X 'GET' \
@@ -200,7 +175,7 @@ curl -X 'GET' \
   -H 'Authorization: Basic YWRtaW46YWRtaW4=' | jq
 ```
 
-This will return the stored configuration from the database:
+The output will display the stored configuration:
 
 ```json
 {
@@ -272,7 +247,7 @@ This will return the stored configuration from the database:
 
 #### Update a pipeline
 
-To update a pipeline, send the updated configuration along with the pipeline ID:
+To update the pipeline configuration, use its ID and send the updated data:
 
 ```sh
 curl -X 'PUT' \
@@ -295,8 +270,7 @@ curl -X 'PUT' \
 }' | jq
 ```
 
-Here we're updating the pipeline configuration to keep only the `Run` stage and remove the
-other two. This returns:
+This modifies the pipeline configuration, removing all but the `Run` stage:
 
 ```json
 {
@@ -307,7 +281,7 @@ other two. This returns:
 
 #### Trigger a pipeline
 
-You can trigger an existing pipeline like this:
+To trigger a pipeline, use the following command:
 
 ```sh
 curl -X 'POST' \
@@ -317,7 +291,7 @@ curl -X 'POST' \
   -d '' | jq
 ```
 
-This will trigger the pipeline in the background and return:
+The pipeline will be triggered in the background, and you'll receive this response:
 
 ```json
 {
@@ -328,7 +302,7 @@ This will trigger the pipeline in the background and return:
 
 #### Delete a pipeline
 
-Finally, delete the pipeline with the following request:
+To delete a pipeline, use the following request:
 
 ```sh
 curl -X 'DELETE' \
@@ -338,7 +312,7 @@ curl -X 'DELETE' \
   -d '' | jq
 ```
 
-This will delete the existing pipeline and cancel it if it's running:
+This will delete the pipeline and return:
 
 ```json
 {
@@ -347,38 +321,82 @@ This will delete the existing pipeline and cancel it if it's running:
 }
 ```
 
-### Via OpenAPI docs
+### Via interactive OpenAPI docs
 
-You can also interact with the endpoints through the interactive OpenAPI documentation. To
-do so, make sure the service is running, then go to [http://localhost:5001/docs][docs] in
-your browser. You'll see a page like this:
+You can also interact with the service via its interactive OpenAPI documentation. Once the
+service is running, head to [http://localhost:5001/docs][docs]. Here's what it looks like:
 
 ![FastAPI docs page 1][docs-1]
 
-Clicking on each dropdown will show you an example payload, and you can immediately start
-making requests. For example, here’s how to create a pipeline:
+You can use the interactive interface to make requests and view the results. For example,
+you can create a pipeline like this:
 
 ![FastAPI docs create pipeline][docs-2]
 
 Clicking the **Execute** button will ask for your credentials. Just use `admin` for both the
-username and password. Once that’s done, you can see the request succeeded.
+username and password. Once that’s done, you can see that the request succeeded.
 
 ![FastAPI docs create pipeline response][docs-3]
 
 You can explore the other endpoints in a similar fashion.
 
-### Triggering pipelines, inspecting the logs and cancellation behaviors
+### Log inspection and pipeline cancellation behavior
 
-When you trigger a pipeline, the service prints logs to signal the currently running...
+When a pipeline is triggered, logs associated with the runner are printed. Here's how the
+log stream looks for a sequential stage run (timestamps omitted for brevity):
 
-...under construction...
+```txt
+pipeline.runner - INFO - Running pipeline '6e3af0f0-3f30-4fcb-8960-eeeafb663374' stages in sequence.
+pipeline.runner - INFO - Running stage 'Run tests' type 'run'.
+pipeline.runner - INFO - Stage 'Run tests' completed.
+pipeline.runner - INFO - Running stage 'Build Docker image' of type 'build'.
+pipeline.runner - INFO - Building the application...
+pipeline.runner - INFO - Uploading to ecr...
+pipeline.runner - INFO - Stage 'Build Docker image' completed.
+pipeline.runner - INFO - Running stage 'deploy-app-stage' of type 'deploy'.
+pipeline.runner - INFO - Deploying the application to k8s...
+pipeline.runner - INFO - Stage 'deploy-app-stage' completed.
+pipeline.runner - INFO - Pipeline '6e3af0f0-3f30-4fcb-8960-eeeafb663374' stages completed successfully.
+pipeline.runner - INFO - Pipeline '6e3af0f0-3f30-4fcb-8960-eeeafb663374' completed successfully.
+```
+
+For parallel stage execution, the logs will look something like this:
+
+```txt
+pipeline.runner - INFO - Running stage 'Run tests' type 'run'.
+pipeline.runner - INFO - Running stage 'Build Docker image' of type 'build'.
+pipeline.runner - INFO - Building the application...
+pipeline.runner - INFO - Uploading to ecr...
+pipeline.runner - INFO - Running stage 'deploy-app-stage' of type 'deploy'.
+pipeline.runner - INFO - Deploying the application to k8s...
+pipeline.runner - INFO - Stage 'Run tests' completed.
+pipeline.runner - INFO - Stage 'Build Docker image' completed.
+pipeline.runner - INFO - Stage 'deploy-app-stage' completed.
+pipeline.runner - INFO - Pipeline '262953b3-3821-48b7-a1c8-f94e17763f38' completed successfully.
+```
+
+Observe that, in parallel execution, tasks are fired off and completed in an arbitrary
+order.
+
+If you try to retrigger a pipeline multiple times before all stages finish, the runner will
+cancel the previous run before executing a new one. Here’s what it looks like:
+
+```txt
+pipeline.runner - INFO - Running pipeline '9fad63f4-2662-4bdd-b09d-e3817c0b730a' stages in sequence.
+pipeline.runner - INFO - Running stage 'Run tests' type 'run'.
+pipeline.handlers - INFO - Scheduling pipeline stages...
+pipeline.runner - INFO - Pipeline '9fad63f4-2662-4bdd-b09d-e3817c0b730a' is running. Canceling it.
+pipeline.runner - INFO - Pipeline '9fad63f4-2662-4bdd-b09d-e3817c0b730a' stages were cancelled.
+
+<Rest of the log messages are the same as typical pipeline runs>
+```
 
 ## CLI
 
-The `pipeline` service also provides a simple CLI wrapper over the endpoints, making it easy
-to interact with via the command line.
+The `pipeline` service also provides a CLI wrapper over the API endpoints. You can use it as
+follows:
 
--   **Create a pipeline instance:**
+-   **Create a pipeline:**
 
     ```sh
     uv run python -m src.cli create-pipeline --username admin --password admin --data '{
@@ -396,6 +414,8 @@ to interact with via the command line.
     }' | jq
     ```
 
+    This returns:
+
     ```json
     {
       "id": "a0305992-931e-4dc0-aa2b-893116f6542e",
@@ -404,9 +424,6 @@ to interact with via the command line.
     ```
 
 -   **Get the pipeline configuration:**
-
-    To retrieve the configuration of the pipeline you just created, use its ID from the
-    response above:
 
     ```sh
     uv run python -m src.cli get-pipeline \
@@ -493,25 +510,23 @@ to interact with via the command line.
     }
     ```
 
-## Development & housekeeping
+## Development and housekeeping
 
 ### Run the tests
 
-The tests live in the `tests/` directory and we're using [pytest] to write them. The entire
-service is covered by both unit and integration tests. The integration tests are marked with
-`pytest.mark.integration` markers.
+Tests are located in the `tests/` directory. We use [pytest] for testing. The service is
+covered by a fleet of unit and integration tests. Integration tests are marked with
+`pytest.mark.integration` and they make actual HTTP calls to the pipeline service. So the
+server needs to be running while executing them. On the contrary, unit tests have no
+dependency on the running server.
 
-Unit tests can be run in isolation and don't have any extraneous dependencies. On the
-contrary, the integration tests make actual HTTP calls to the the pipeline service, so in
-order to run them, the server needs to be up.
-
-Run the unit tests:
+Run unit tests:
 
 ```sh
 make test
 ```
 
-This will print:
+This will output something like:
 
 ```txt
 ---------- coverage: platform darwin, python 3.13.0-final-0 ----------
@@ -528,7 +543,9 @@ tests/test_logger.py           38      0   100%
 tests/test_main.py             48      2    96%
 tests/test_routes.py           45      0   100%
 tests/test_runner.py           86      2    98%
-tests/test_utils.py            10      0   100%
+tests/test_utils.py
+
+ 10      0   100%
 -----------------------------------------------
 TOTAL                         611     47    92%
 
@@ -536,7 +553,7 @@ TOTAL                         611     47    92%
 ===================== 73 passed, 5 deselected in 1.59s ===============
 ```
 
-Run the integration tests while the server is running:
+Run integration tests while the server is running:
 
 ```sh
 make run-integration
@@ -544,8 +561,8 @@ make run-integration
 
 ### Linting, formatting, and type checking
 
-[Ruff] is used to lint and format the code, while [mypy] is used for type checking. Run them
-with:
+[Ruff] is used for linting and formatting, while [mypy] is used for type checking. You can
+run both with:
 
 ```sh
 make lint
@@ -553,20 +570,37 @@ make lint
 
 ### Dependency management
 
-Dependencies are managed via [uv]. You can add, remove, and update dependencis using the uv
-CLI.
+Dependencies are managed via [uv]. To add, remove, or update dependencies, use the `uv` CLI.
 
-## Constraints & limitations
+### CI
 
-1. During sequential stage execution, if a stage fails, the runner won't run the subsequent
-   stages (if any).
+There's a rudimentary CI file in the `.github/workers` directory that uses [GitHub Actions] to
+run the following steps on every commit and PR:
 
-2. However, since the service doesn't resolve a DAG of dependent stages, the failure of one
-   stage has no effect on other stages during parallel execution.
+-   Check linter conformity
+-   Run the unit tests
+-   Build the container
+-   Spin up the server
+-   Run the integration tests
+-   Clean everything up
 
-3. Validating Dockerfiles or Kubernetes manifests before execution is non-trivial, so this
-   demo service does not perform such validation. However, it does validate other fields and
-   returns HTTP 4xx errors accordingly.
+### Deployment
+
+The Dockerfile shipped with the service is production ready. For development, the service
+uses [uvicorn] to expose the endpoints. However, on production setups, [gunicorn] worker
+processes are spawned and inside each process, multiple [uvicorn] workers serves the inbound
+requests.
+
+## Constraints and limitations
+
+1. During sequential stage execution, if a stage fails, the runner will not execute
+   subsequent stages.
+2. In parallel execution, a stage failure doesn't affect other stages, as the service
+   doesn't resolve a DAG for dependent stages.
+3. This demo service does not validate Dockerfiles or Kubernetes manifests before execution,
+   but it does validate other fields and returns HTTP 4xx errors when applicable.
+4. Currently, the `PUT /pipelines/{id}` endpont doesn't allow partial update; the entire
+   configuration will be replaced with the incoming payload.
 
 ---
 
@@ -590,3 +624,6 @@ CLI.
 [jq]: https://jqlang.github.io/jq/
 [pytest]: https://docs.pytest.org/en/stable/
 [ruff]: https://docs.astral.sh/ruff/
+[mypy]: https://www.mypy-lang.org/
+[gunicorn]: https://gunicorn.org/
+[github actions]: https://docs.github.com/en/actions

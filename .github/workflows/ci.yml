@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+# If you trigger a new workflow while the previous one is running,
+# this will cancel the previous one.
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.13']
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      # Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Python 3.13 environment
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Install uv
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      # Install project dependencies using uv
+      - name: Install dependencies
+        run: uv sync
+
+      # Run linter to check code conformity
+      - name: Run lint-check
+        run: make lint-check
+
+      # Run unit tests
+      - name: Run unit tests
+        run: make test
+
+      # Spin up the server using Docker Compose
+      - name: Run container
+        run: make run-container
+
+      # Wait for the server to be ready
+      - name: Wait for server to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:5001 > /dev/null; then
+              echo "Server is up"
+              exit 0
+            fi
+            echo "Waiting for server..."
+            sleep 1
+          done
+          echo "Server did not start in time"
+          exit 1
+
+      # Run integration tests
+      - name: Run integration tests
+        run: make test-integration
+
+      # Cleanup: stop and remove the Docker container
+      - name: Cleanup
+        if: always()
+        run: make kill-container
